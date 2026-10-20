@@ -13,6 +13,8 @@ struct CanvasRepresentable: NSViewRepresentable {
 
     func updateNSView(_ view: CanvasView, context: Context) {
         view.model = model
+        // Keep the image clear of the floating toolbar, and of the text or crop bar under it.
+        view.topInset = model.isCropping || model.showsTextBar ? 108 : 62
         view.modelDidChange()
     }
 }
@@ -46,6 +48,11 @@ final class CanvasView: NSView, NSTextViewDelegate {
     private var editWasRTL = false
 
     override var isFlipped: Bool { true }
+
+    /// Height covered by the floating bars at the top; the image is fitted below it.
+    var topInset: CGFloat = 62 {
+        didSet { if topInset != oldValue { needsDisplay = true } }
+    }
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
@@ -79,7 +86,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
         let size = layout.canvasSize
         guard size.width > 0, size.height > 0 else { return 1 }
         let availW = max(bounds.width - 48, 40)
-        let availH = max(bounds.height - 48, 40)
+        let availH = max(bounds.height - topInset - 24, 40)
         let fit = min(availW / size.width, availH / size.height)
         return min(fit, 1 / model.doc.scale)
     }
@@ -87,7 +94,9 @@ final class CanvasView: NSView, NSTextViewDelegate {
     private var canvasOrigin: CGPoint {
         let size = layout.canvasSize
         let z = zoom
-        return CGPoint(x: ((bounds.width - size.width * z) / 2).rounded(), y: ((bounds.height - size.height * z) / 2).rounded())
+        let freeHeight = bounds.height - topInset - 24
+        return CGPoint(x: ((bounds.width - size.width * z) / 2).rounded(),
+                       y: (topInset + (freeHeight - size.height * z) / 2).rounded())
     }
 
     private func imagePoint(fromView p: CGPoint) -> CGPoint {

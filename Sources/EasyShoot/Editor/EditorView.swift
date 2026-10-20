@@ -8,8 +8,12 @@ struct EditorView: View {
 
     private let inspectorTab: InspectorView.Tab
 
-    /// The inspector always has this width; its content adapts to it, never the other way round.
+    /// The inspector opens at this width. People can drag its edge within `inspectorWidthRange`;
+    /// its content adapts to the column, never the other way round.
     static let inspectorWidth: CGFloat = 290
+    /// Narrower squeezes the labels; wider takes too much from the canvas on a 13-inch screen.
+    static let inspectorWidthRange: ClosedRange<CGFloat> = 260...440
+    static let canvasMinWidth: CGFloat = 400
 
     init(model: EditorModel, presets: PresetStore, inspectorTab: InspectorView.Tab = .style) {
         self.model = model
@@ -19,46 +23,44 @@ struct EditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ZStack(alignment: .top) {
-                    CanvasRepresentable(model: model)
-                        .frame(minWidth: 400, minHeight: 320)
-                        .layoutProbe("canvas")
-                    VStack(spacing: 8) {
-                        ViewThatFits(in: .horizontal) {
-                            FloatingToolbar(model: model)
-                            FloatingToolbar(model: model, compact: true)
-                        }
-                        .layoutProbe("toolbar")
-                        if model.isCropping {
-                            CropBar(model: model)
-                        } else if model.showsTextBar {
-                            ViewThatFits(in: .horizontal) {
-                                TextBar(model: model)
-                                TextBar(model: model, compact: true)
-                            }
-                            .layoutProbe("textBar")
-                        }
+            ZStack(alignment: .top) {
+                CanvasRepresentable(model: model)
+                    .frame(minWidth: Self.canvasMinWidth, minHeight: 320)
+                    .layoutProbe("canvas")
+                VStack(spacing: 8) {
+                    ViewThatFits(in: .horizontal) {
+                        FloatingToolbar(model: model)
+                        FloatingToolbar(model: model, compact: true)
                     }
-                    .padding(.top, 12)
-                    .padding(.horizontal, 12)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.showsTextBar)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
+                    .layoutProbe("toolbar")
+                    if model.isCropping {
+                        CropBar(model: model)
+                    } else if model.showsTextBar {
+                        ViewThatFits(in: .horizontal) {
+                            TextBar(model: model)
+                            TextBar(model: model, compact: true)
+                        }
+                        .layoutProbe("textBar")
+                    }
                 }
-                if showInspector {
-                    Divider()
-                    InspectorView(model: model, tab: inspectorTab)
-                        .frame(width: Self.inspectorWidth)
-                        .clipped()
-                        .layoutProbe("inspector")
-                        .transition(.move(edge: .trailing))
-                }
+                .padding(.top, 12)
+                .padding(.horizontal, 12)
+                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.showsTextBar)
+                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
+            }
+            // The system inspector column: drag its edge to resize it (with the column-resize
+            // pointer), within safe limits, and it moves to the left side in right-to-left languages.
+            .inspector(isPresented: $showInspector) {
+                InspectorView(model: model, tab: inspectorTab)
+                    .layoutProbe("inspector")
+                    .inspectorColumnWidth(min: Self.inspectorWidthRange.lowerBound,
+                                          ideal: Self.inspectorWidth,
+                                          max: Self.inspectorWidthRange.upperBound)
             }
             Divider()
             EditorBottomBar(model: model, presets: presets, showInspector: $showInspector)
                 .layoutProbe("bottomBar")
         }
-        .animation(.easeInOut(duration: 0.2), value: showInspector)
     }
 }
 
@@ -92,11 +94,14 @@ struct FloatingToolbar: View {
         [.highlighter, .pen, .pixelate],
     ]
 
+    private var toolWidth: CGFloat { compact ? 27 : 32 }
+    private var dividerPadding: CGFloat { compact ? 1 : 3 }
+
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: compact ? 2 : 4) {
             ForEach(groups.indices, id: \.self) { index in
                 if index > 0 {
-                    Divider().frame(height: 18).padding(.horizontal, 3)
+                    Divider().frame(height: 18).padding(.horizontal, dividerPadding)
                 }
                 ForEach(groups[index]) { tool in
                     Button {
@@ -104,7 +109,7 @@ struct FloatingToolbar: View {
                     } label: {
                         Image(systemName: tool.symbol)
                             .font(.system(size: 14, weight: .medium))
-                            .frame(width: 32, height: 28)
+                            .frame(width: toolWidth, height: 28)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(ToolButtonStyle(selected: model.tool == tool))
@@ -112,7 +117,7 @@ struct FloatingToolbar: View {
                 }
             }
 
-            Divider().frame(height: 18).padding(.horizontal, 3)
+            Divider().frame(height: 18).padding(.horizontal, dividerPadding)
 
             if compact {
                 Button { showColors.toggle() } label: {
@@ -132,7 +137,7 @@ struct FloatingToolbar: View {
                 ColorDots(model: model)
             }
 
-            Divider().frame(height: 18).padding(.horizontal, 3)
+            Divider().frame(height: 18).padding(.horizontal, dividerPadding)
 
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 26, height: 28) }
                 .buttonStyle(ToolButtonStyle(selected: false))
@@ -143,7 +148,7 @@ struct FloatingToolbar: View {
                 .disabled(!model.canRedo)
                 .help(L("Redo") + "  ⇧⌘Z")
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, compact ? 6 : 8)
         .padding(.vertical, 6)
         .glassSurface(cornerRadius: 14)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
@@ -278,6 +283,7 @@ struct CropBar: View {
 
 struct InspectorView: View {
     @ObservedObject var model: EditorModel
+    /// Seeds the first tab once; after that the tab is the inspector's own state.
     @State private var tab: Tab
 
     init(model: EditorModel, tab: Tab = .style) {
@@ -303,20 +309,25 @@ struct InspectorView: View {
                 .layoutProbe("inspectorTabs")
                 .padding(12)
 
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 12) {
-                    switch tab {
-                    case .style: StyleInspector(model: model)
-                    case .background: BackgroundInspector(model: model)
-                    case .export: ExportInspector(model: model)
+            // The content takes exactly the column's width (whatever the person dragged it to), so
+            // no row can push the inspector wider or spill over the window's edge.
+            GeometryReader { proxy in
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        switch tab {
+                        case .style: StyleInspector(model: model)
+                        case .background: BackgroundInspector(model: model)
+                        case .export: ExportInspector(model: model)
+                        }
                     }
+                    .padding(.bottom, 16)
+                    .frame(width: max(proxy.size.width - 24, 0), alignment: .leading)
+                    .layoutProbe("inspectorContent")
+                    .padding(.horizontal, 12)
                 }
-                .padding(.bottom, 16)
-                .frame(width: EditorView.inspectorWidth - 24, alignment: .leading)
-                .layoutProbe("inspectorContent")
-                .padding(.horizontal, 12)
             }
         }
+        .clipped()
         .background(.background.secondary)
     }
 }
@@ -725,7 +736,18 @@ struct EditorBottomBar: View {
 
             Spacer(minLength: 8)
 
-            Button { showInspector.toggle() } label: {
+            if model.statusMessage == nil {
+                let size = model.outputSize
+                Text("\(Int(size.width)) × \(Int(size.height)) px · \(model.export.format.title)")
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help(L("Size and format of the exported image"))
+            }
+
+            Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
                 Image(systemName: "sidebar.trailing")
                     .frame(width: 22, height: 18)
             }

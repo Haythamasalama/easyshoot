@@ -10,7 +10,7 @@ final class Updater {
 
     private static let latestReleaseURL = URL(string: "https://api.github.com/repos/Haythamasalama/easyshoot/releases/latest")!
     private static let releasesPage = URL(string: "https://github.com/Haythamasalama/easyshoot/releases/latest")!
-    private static let assetName = "EasyShoot.zip"
+    nonisolated private static let assetName = "EasyShoot.zip"
     private static let checkInterval: TimeInterval = 24 * 60 * 60
 
     private let defaults = UserDefaults.standard
