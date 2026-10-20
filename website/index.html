@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EasyShoot for Mac</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Capture, annotate and frame screenshots on your Mac. Scrolling capture, Arabic and RTL text, backgrounds and presets. No cloud, no account.">
+<meta property="og:title" content="EasyShoot for Mac">
+<meta property="og:description" content="Capture. Mark up. Share. Screenshots that stay on your Mac.">
+<meta property="og:image" content="og.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Readex+Pro:wght@400;500;700&display=swap">
+<style>
+/* Layout: a graphite "app window" hero over paper, then alternating paper and graphite bands. One accent: signal orange. */
+:root {
+  --paper: #F4F4F6;
+  --surface: #FFFFFF;
+  --ink: #0F0F12;
+  --muted: #5B5B66;
+  --line: rgba(15, 15, 18, 0.10);
+  --signal: #FF5A1F;
+  --signal-text: #C93E0C;
+  --graphite: #0F0F12;
+  --slate: #2E2E35;
+  --on-dark: #F4F4F6;
+  --on-dark-muted: #A6A6B0;
+  --font-display: "Bricolage Grotesque", "Readex Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Readex Pro", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 14px;
+  --max: 1160px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F0F12; --surface: #17171C; --ink: #F4F4F6; --muted: #A6A6B0;
+    --line: rgba(255, 255, 255, 0.10); --signal: #FF6A33; --signal-text: #FF8A5C;
+    --graphite: #08080A; --slate: #26262D; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F0F12; --surface: #17171C; --ink: #F4F4F6; --muted: #A6A6B0;
+  --line: rgba(255, 255, 255, 0.10); --signal: #FF6A33; --signal-text: #FF8A5C;
+  --graphite: #08080A; --slate: #26262D; color-scheme: dark;
+}
+:root:lang(ar) {
+  --font-display: "Readex Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Readex Pro", ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 17px/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: var(--max); margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -0.03em; }
+:lang(ar) h1, :lang(ar) h2, :lang(ar) h3 { letter-spacing: 0; line-height: 1.25; }
+h1 { font-size: clamp(42px, 6.4vw, 84px); font-weight: 800; }
+h2 { font-size: clamp(32px, 4.2vw, 54px); font-weight: 800; }
+h3 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+p { margin: 0; }
+.lede { font-size: clamp(18px, 1.6vw, 21px); color: var(--muted); max-width: 34em; }
+.eyebrow { font: 600 13px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--signal-text); }
+:lang(ar) .eyebrow { letter-spacing: 0; }
+
+/* Nav */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--paper) 82%, transparent); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 800 21px/1 var(--font-display); letter-spacing: -0.03em; }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.brand b { color: var(--signal); font-weight: 800; }
+.nav-links { display: flex; gap: 22px; margin-inline-start: auto; font-weight: 500; font-size: 15px; }
+.nav-links a { text-decoration: none; color: var(--muted); }
+.nav-links a:hover { color: var(--ink); }
+.lang { appearance: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 7px 30px 7px 14px; font: 500 14px var(--font-body); cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+:dir(rtl) .lang { padding: 7px 14px 7px 30px; background-position: 15px 52%, 10px 52%; }
+.btn { display: inline-flex; align-items: center; gap: 9px; border-radius: 999px; padding: 12px 22px; font: 600 16px/1 var(--font-body); text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .15s ease, background .15s ease; }
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--signal); color: #fff; }
+.btn-primary:hover { background: color-mix(in srgb, var(--signal) 88%, #000); }
+.btn-ghost { border-color: var(--line); color: var(--ink); background: var(--surface); }
+.btn svg { width: 18px; height: 18px; }
+.nav .btn { padding: 9px 16px; font-size: 14px; }
+
+/* Hero */
+.hero { padding-block: 72px 40px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; }
+.hero-copy { display: grid; gap: 22px; justify-items: start; }
+.hero h1 em { font-style: normal; color: var(--signal); }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; }
+.meta span { display: inline-flex; align-items: center; gap: 6px; }
+.meta span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--signal); }
+
+/* App window mockup */
+.window { background: var(--graphite); border-radius: 18px; box-shadow: 0 40px 80px -30px rgba(15, 15, 18, .45), 0 0 0 1px rgba(255, 255, 255, .06) inset; overflow: hidden; color: var(--on-dark); }
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.toolbar { margin-inline: auto; display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .08); }
+.toolbar i { width: 28px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: var(--on-dark-muted); }
+.toolbar i.on { background: var(--signal); color: #fff; }
+.toolbar svg { width: 15px; height: 15px; }
+.window-body { display: grid; grid-template-columns: minmax(0, 1fr) 190px; }
+.stage { padding: 22px; display: grid; place-items: center; min-height: 380px; background: #1A1A1F; }
+.frame { width: 100%; max-width: 560px; border-radius: 16px; padding: var(--pad, 34px); transition: padding .5s cubic-bezier(.2, .8, .2, 1), background .5s ease; background: var(--bg-fill, linear-gradient(135deg, #4FACFE, #00F2FE)); }
+.shot { position: relative; background: #fff; color: #17171c; border-radius: var(--shot-radius, 10px); box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .45); padding: 18px 20px 20px; transition: border-radius .5s ease; font-family: "Instrument Sans", "Readex Pro", system-ui, sans-serif; }
+.shot .bar { display: flex; gap: 6px; margin-bottom: 14px; }
+.shot .bar b { width: 9px; height: 9px; border-radius: 50%; background: #e3e3e8; }
+.shot h4 { margin: 0 0 4px; font-size: 16px; }
+.shot .sub { color: #77777f; font-size: 12.5px; margin-bottom: 14px; }
+.field { border: 1px solid #e6e6ea; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 10px; }
+.field .px { filter: blur(3.5px); }
+.hl { background: linear-gradient(transparent 15%, rgba(255, 204, 0, .55) 15%, rgba(255, 204, 0, .55) 90%, transparent 90%); }
+.pay { margin-top: 12px; background: #17171c; color: #fff; border-radius: 9px; text-align: center; padding: 9px; font-weight: 600; font-size: 13px; }
+.badge { position: absolute; width: 24px; height: 24px; border-radius: 50%; background: var(--signal); color: #fff; font: 700 12px/24px var(--font-body); text-align: center; box-shadow: 0 0 0 2px #fff, 0 4px 10px rgba(0, 0, 0, .25); }
+.note { position: absolute; font: 700 13px/1.2 var(--font-body); color: #fff; background: var(--signal); padding: 5px 10px; border-radius: 8px; white-space: nowrap; box-shadow: 0 6px 14px -4px rgba(0, 0, 0, .35); }
+.arrow { position: absolute; pointer-events: none; }
+:dir(rtl) .arrow { transform: scaleX(-1); }
+.panel { border-inline-start: 1px solid rgba(255, 255, 255, .08); padding: 16px 14px; display: grid; align-content: start; gap: 14px; font-size: 12.5px; color: var(--on-dark-muted); }
+.panel strong { display: block; color: var(--on-dark); font-size: 12px; margin-bottom: 8px; font-weight: 600; }
+.swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.swatch { aspect-ratio: 1.4; border-radius: 7px; border: 0; cursor: pointer; box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--signal); }
+.slider { width: 100%; accent-color: var(--signal); }
+.try { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.try::before { content: "↗"; color: var(--signal); font-weight: 700; }
+:dir(rtl) .try::before { content: "↖"; }
+
+/* Sections */
+section { padding-block: 96px; }
+.section-head { display: grid; gap: 16px; margin-bottom: 48px; max-width: 760px; }
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.feature { padding: 30px 28px 34px 0; display: grid; gap: 10px; align-content: start; border-bottom: 1px solid var(--line); }
+:dir(rtl) .feature { padding: 30px 0 34px 28px; }
+.feature + .feature { }
+.feature svg { width: 30px; height: 30px; color: var(--signal); margin-bottom: 6px; }
+.feature p { color: var(--muted); }
+.feature .tag { font: 500 12px/1 var(--font-mono); color: var(--muted); direction: ltr; unicode-bidi: isolate; justify-self: start; }
+
+.dark { background: var(--graphite); color: var(--on-dark); }
+.dark .lede, .dark p { color: var(--on-dark-muted); }
+.dark .eyebrow { color: var(--signal); }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+.facts { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; }
+.facts li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; }
+.facts li::before { content: ""; width: 10px; height: 10px; margin-top: 8px; border-radius: 3px; background: var(--signal); }
+.dark .facts li { color: var(--on-dark); }
+
+/* Scrolling capture visual */
+.scroll-demo { position: relative; height: 420px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
+.viewport { position: relative; height: 210px; border-radius: 12px; border: 2px dashed var(--signal); overflow: hidden; background: #1A1A1F; }
+.longpage { position: absolute; inset: 0 0 auto; padding: 12px; display: grid; gap: 10px; animation: scrollpage 7s ease-in-out infinite alternate; }
+@keyframes scrollpage { from { transform: translateY(0); } to { transform: translateY(-58%); } }
+.row { height: 34px; border-radius: 8px; background: #2A2A31; display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+.row i { height: 8px; border-radius: 4px; background: #45454f; flex: 1; }
+.row i:first-child { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #FF5A1F55; }
+.stitched { height: 400px; border-radius: 12px; background: #1A1A1F; padding: 12px; display: grid; gap: 10px; align-content: start; position: relative; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset; }
+.stitched::after { content: attr(data-height); position: absolute; inset-inline-end: 10px; bottom: 10px; font: 500 12px var(--font-mono); color: var(--on-dark-muted); background: rgba(0, 0, 0, .5); padding: 4px 8px; border-radius: 6px; }
+.stitched .row { animation: appear 7s ease-in-out infinite alternate; }
+@keyframes appear { 0%, 10% { opacity: .15; } 100% { opacity: 1; } }
+.stitched .row:nth-child(-n+4) { animation: none; }
+
+/* Quick access */
+.qa { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+.qa-card { position: relative; width: min(320px, 100%); aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: linear-gradient(135deg, #2E2E35, #0F0F12); box-shadow: 0 30px 60px -24px rgba(15, 15, 18, .5); justify-self: center; }
+.qa-card .mini { position: absolute; inset: 14% 12%; background: #fff; border-radius: 8px; }
+.qa-card .mini::before { content: ""; position: absolute; inset: 16% 14% auto; height: 10%; border-radius: 4px; background: #e6e6ea; box-shadow: 0 22px 0 #eeeef1, 0 44px 0 #eeeef1; }
+.qa-veil { position: absolute; inset: 0; background: rgba(0, 0, 0, .42); display: grid; place-content: center; gap: 8px; }
+.qa-veil span { background: #fff; color: #111; border-radius: 999px; padding: 7px 28px; font: 600 13px var(--font-body); text-align: center; }
+.qa-x, .qa-pen { position: absolute; top: 8px; width: 22px; height: 22px; border-radius: 50%; background: #fff; display: grid; place-items: center; font: 700 11px var(--font-body); color: #111; }
+.qa-x { inset-inline-start: 8px; } .qa-pen { inset-inline-end: 8px; }
+
+/* Shortcuts */
+.keys { display: grid; gap: 10px; border-top: 1px solid var(--line); }
+.keyrow { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.kbd { display: inline-flex; gap: 4px; direction: ltr; }
+.kbd kbd { min-width: 30px; height: 30px; padding: 0 8px; display: grid; place-items: center; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--line); font: 500 14px var(--font-mono); }
+
+/* Privacy */
+.privacy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 8px; }
+.privacy div { padding: 26px 26px 0 0; border-top: 2px solid var(--signal); display: grid; gap: 8px; }
+:dir(rtl) .privacy div { padding: 26px 0 0 26px; }
+.privacy b { font: 800 30px/1 var(--font-display); letter-spacing: -0.02em; }
+
+/* Languages */
+.langs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.langs button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 10px 18px; font: 500 16px var(--font-body); cursor: pointer; }
+.langs button[aria-pressed="true"] { border-color: var(--signal); color: var(--signal-text); box-shadow: 0 0 0 1px var(--signal) inset; }
+.rtl-sample { margin-top: 26px; padding: 18px 20px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.rtl-sample .ar { font: 700 26px/1.3 "Readex Pro", system-ui, sans-serif; direction: rtl; color: var(--signal-text); }
+
+/* FAQ */
+.faq { display: grid; border-top: 1px solid var(--line); max-width: 860px; }
+.faq details { border-bottom: 1px solid var(--line); padding: 20px 0; }
+.faq summary { cursor: pointer; font: 700 19px/1.35 var(--font-display); letter-spacing: -0.01em; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--signal); font-weight: 700; }
+.faq details[open] summary::after { content: "–"; }
+.faq p { margin-top: 10px; color: var(--muted); max-width: 62ch; }
+.faq code { font: 500 14px var(--font-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; direction: ltr; unicode-bidi: isolate; }
+
+/* CTA + footer */
+.cta { text-align: center; display: grid; justify-items: center; gap: 20px; }
+.cta svg.mark { width: 88px; height: 88px; }
+footer { padding-block: 34px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+@media (min-width: 980px) {
+  .hero-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; }
+}
+@media (max-width: 900px) {
+  .features, .privacy { grid-template-columns: minmax(0, 1fr); }
+  .feature, :dir(rtl) .feature { padding: 26px 0; }
+  .split, .qa { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .nav-links { display: none; }
+  .lang { margin-inline-start: auto; }
+}
+@media (max-width: 640px) {
+  section { padding-block: 72px; }
+  .window-body { grid-template-columns: minmax(0, 1fr); }
+  .panel { border-inline-start: 0; border-top: 1px solid rgba(255, 255, 255, .08); grid-template-columns: 1fr 1fr; }
+  .toolbar i:nth-child(n+7) { display: none; }
+  .stage { padding: 14px; min-height: 0; }
+  .scroll-demo { height: auto; grid-template-columns: minmax(0, 1fr); }
+  .stitched { height: 300px; }
+  .nav .btn span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 64 64">
+      <rect x="2" y="2" width="60" height="60" rx="15" fill="#18181D"/>
+      <rect x="2.5" y="2.5" width="59" height="59" rx="14.5" fill="none" stroke="#fff" stroke-opacity=".12"/>
+      <path d="M18 26v-5a3 3 0 0 1 3-3h5M38 18h5a3 3 0 0 1 3 3v5M46 38v5a3 3 0 0 1-3 3h-5M26 46h-5a3 3 0 0 1-3-3v-5" fill="none" stroke="#FF5A1F" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 26.5v11M26.5 32h11" stroke="#F4F4F6" stroke-width="2.4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.1 5.6c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></symbol>
+  </defs>
+</svg>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="EasyShoot"><svg><use href="#mark"/></svg><span>Easy<b>Shoot</b></span></a>
+    <nav class="nav-links">
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#scrolling" data-i18n="nav.scrolling">Scrolling capture</a>
+      <a href="#privacy" data-i18n="nav.privacy">Privacy</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+    </nav>
+    <label class="visually-hidden" for="lang" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Language</label>
+    <select id="lang" class="lang" aria-label="Language">
+      <option value="en">English</option>
+      <option value="ar">العربية</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+      <option value="de">Deutsch</option>
+    </select>
+    <a class="btn btn-primary" href="https://github.com/Haythamasalama/easyshoot/releases/latest"><svg><use href="#i-apple"/></svg><span data-i18n="cta.download">Download for Mac</span></a>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow" data-i18n="hero.eyebrow">Screenshot tool for macOS</span>
+        <h1 data-i18n-html="hero.title">Screenshots that <em>explain</em> themselves.</h1>
+        <p class="lede" data-i18n="hero.lede">Capture any part of your screen, mark it up with arrows, text and numbered steps, frame it on a clean background and share it in seconds. Everything stays on your Mac.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="https://github.com/Haythamasalama/easyshoot/releases/latest"><svg><use href="#i-apple"/></svg><span data-i18n="cta.download">Download for Mac</span></a>
+          <a class="btn btn-ghost" href="#features" data-i18n="cta.tour">See what it does</a>
+        </div>
+        <div class="meta">
+          <span data-i18n="meta.free">Free</span>
+          <span data-i18n="meta.macos">macOS 14 Sonoma or later</span>
+          <span data-i18n="meta.cloud">No account, no cloud</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="window" role="img" aria-label="EasyShoot editor with an annotated screenshot">
+          <div class="titlebar">
+            <span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>
+            <div class="toolbar" aria-hidden="true">
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3l14 9-6 1-3 6z"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></svg></i>
+              <i class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5M9 5h10v10"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M11 9l2-1v8" stroke-linecap="round"/></svg></i>
+              <i><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="5" height="5"/><rect x="9.5" y="9.5" width="5" height="5"/><rect x="15" y="4" width="5" height="5"/><rect x="4" y="15" width="5" height="5"/><rect x="15" y="15" width="5" height="5"/></svg></i>
+            </div>
+          </div>
+          <div class="window-body">
+            <div class="stage">
+              <div class="frame" id="frame">
+                <div class="shot">
+                  <div class="bar"><b></b><b></b><b></b></div>
+                  <h4 data-i18n="mock.title">Checkout</h4>
+                  <div class="sub" data-i18n="mock.sub">Review your order</div>
+                  <div class="field"><span data-i18n="mock.card">Card</span><span class="px">4242 4242 4242 4242</span></div>
+                  <div class="field"><span data-i18n="mock.plan">Plan</span><span class="hl" data-i18n="mock.planValue">Pro · yearly</span></div>
+                  <div class="field"><span data-i18n="mock.total">Total</span><strong>$48.00</strong></div>
+                  <div class="pay" data-i18n="mock.pay">Pay now</div>
+                  <span class="badge" style="inset-inline-start:-10px;top:102px">1</span>
+                  <span class="badge" style="inset-inline-start:-10px;top:142px">2</span>
+                  <span class="note" id="note" style="inset-inline-end:-14px;top:-14px" data-i18n="mock.note">Tap here to pay</span>
+                  <svg class="arrow" id="arrow" viewBox="0 0 100 100" style="inset-inline-end:-30px;bottom:6px;width:64px;height:64px" aria-hidden="true">
+                    <path d="M90 6 L28 68" stroke="#FF5A1F" stroke-width="9" stroke-linecap="round"/>
+                    <path d="M14 82 L22 46 L50 74 Z" fill="#FF5A1F" stroke="#FF5A1F" stroke-width="6" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div>
+                <strong data-i18n="mock.background">Background</strong>
+                <div class="swatches" id="swatches">
+                  <button class="swatch" aria-label="Ocean" aria-pressed="true" data-fill="linear-gradient(135deg,#4FACFE,#00F2FE)" style="background:linear-gradient(135deg,#4FACFE,#00F2FE)"></button>
+                  <button class="swatch" aria-label="Sunset" aria-pressed="false" data-fill="linear-gradient(135deg,#FA709A,#FEE140)" style="background:linear-gradient(135deg,#FA709A,#FEE140)"></button>
+                  <button class="swatch" aria-label="Mint" aria-pressed="false" data-fill="linear-gradient(135deg,#43E97B,#38F9D7)" style="background:linear-gradient(135deg,#43E97B,#38F9D7)"></button>
+                  <button class="swatch" aria-label="Graphite" aria-pressed="false" data-fill="linear-gradient(160deg,#2E2E35,#0F0F12)" style="background:linear-gradient(160deg,#2E2E35,#0F0F12)"></button>
+                  <button class="swatch" aria-label="Signal" aria-pressed="false" data-fill="#FF5A1F" style="background:#FF5A1F"></button>
+                  <button class="swatch" aria-label="None" aria-pressed="false" data-fill="transparent" style="background:repeating-conic-gradient(#3a3a42 0 25%,#2a2a31 0 50%) 0 0/10px 10px"></button>
+                </div>
+              </div>
+              <div>
+                <strong data-i18n="mock.padding">Padding</strong>
+                <input class="slider" id="pad" type="range" min="8" max="64" value="34" aria-label="Padding">
+              </div>
+              <div>
+                <strong data-i18n="mock.radius">Corner radius</strong>
+                <input class="slider" id="rad" type="range" min="0" max="22" value="10" aria-label="Corner radius">
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="try" data-i18n="hero.try">Try it: change the background, padding and corners.</p>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow" data-i18n="features.eyebrow">Make your point, fast</span>
+        <h2 data-i18n="features.title">Everything a screenshot needs, nothing it doesn’t.</h2>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 26L24 8M13 8h11v11"/></svg>
+          <h3 data-i18n="f.annotate.t">Arrows, shapes and steps</h3>
+          <p data-i18n="f.annotate.d">Arrows, rectangles, ellipses, highlighter, pen and numbered counters. Every mark stays editable: move it, resize it, recolor it.</p>
+          <span class="tag">A · R · O · H · P · N</span>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M27 8H11M27 16H5M27 24H15"/></svg>
+          <h3 data-i18n="f.rtl.t">Arabic and right-to-left text</h3>
+          <p data-i18n="f.rtl.d">Type in Arabic and it writes right-to-left automatically, with proper letter shaping. Use any font on your Mac or download one from Google Fonts.</p>
+          <span class="tag">Auto · LTR · RTL</span>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v19h19M4 9h19v19"/></svg>
+          <h3 data-i18n="f.crop.t">Crop, resize, export</h3>
+          <p data-i18n="f.crop.d">Crop freely or to 1:1, 4:3 and 16:9. Export PNG, JPEG, HEIC or TIFF at any width, with the final pixel size shown as you go.</p>
+          <span class="tag">PNG · JPEG · HEIC · TIFF</span>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="6" width="24" height="20" rx="4"/><rect x="9" y="11" width="14" height="10" rx="2" fill="currentColor" stroke="none" opacity=".35"/></svg>
+          <h3 data-i18n="f.bg.t">Backgrounds that look designed</h3>
+          <p data-i18n="f.bg.d">Gradients, solid colors or transparent, with padding, rounded corners, soft shadows, aspect ratios and alignment for social posts and docs.</p>
+          <span class="tag">1:1 · 4:3 · 16:9 · 9:16</span>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+          <h3 data-i18n="f.presets.t">Presets for your brand</h3>
+          <p data-i18n="f.presets.d">Save your background, colors, fonts and export format as a preset. Make it the default and every new screenshot matches your style.</p>
+          <span class="tag" data-i18n="f.presets.tag">Default preset · auto-applied</span>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="5" width="22" height="22" rx="4"/><path d="M11 16h10M16 11v10"/></svg>
+          <h3 data-i18n="f.keys.t">Your shortcuts, your way</h3>
+          <p data-i18n="f.keys.d">Every capture has a global shortcut you can record yourself. Single-letter tool keys and ⌘+ / ⌘− for text make editing fast.</p>
+          <span class="tag">⌥⇧⌘4 · ⌥⇧⌘6</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="scrolling" class="dark">
+    <div class="wrap split">
+      <div>
+        <span class="eyebrow" data-i18n="scroll.eyebrow">Scrolling capture</span>
+        <h2 style="margin-top:14px" data-i18n="scroll.title">The whole page, in one image.</h2>
+        <p class="lede" style="margin-top:18px" data-i18n="scroll.lede">Select an area, then scroll. EasyShoot stitches every frame into one tall screenshot: full web pages, long chats, documents and code.</p>
+        <ul class="facts">
+          <li data-i18n="scroll.f1">Works in every app, because it reads the screen, not the app.</li>
+          <li data-i18n="scroll.f2">Scroll by hand or let Auto-scroll do it for you.</li>
+          <li data-i18n="scroll.f3">Sticky headers and footers appear once, not on every frame.</li>
+        </ul>
+      </div>
+      <div class="scroll-demo" aria-hidden="true">
+        <div class="viewport">
+          <div class="longpage">
+            <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+            <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+            <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+            <div class="row"><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="stitched" data-height="2 × 4 860 px">
+          <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+          <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+          <div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div><div class="row"><i></i><i></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap qa">
+      <div class="qa-card" aria-hidden="true">
+        <div class="mini"></div>
+        <div class="qa-veil"><span data-i18n="qa.copy">Copy</span><span data-i18n="qa.save">Save</span></div>
+        <div class="qa-x">✕</div><div class="qa-pen">✎</div>
+      </div>
+      <div>
+        <span class="eyebrow" data-i18n="qa.eyebrow">Quick Access</span>
+        <h2 style="margin-top:14px" data-i18n="qa.title">Capture now, decide later.</h2>
+        <p class="lede" style="margin-top:18px" data-i18n="qa.lede">Every capture lands in a small floating thumbnail. Copy it, save it, drag it straight into Slack or Mail, or open the editor. Ignore it and it gets out of the way.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split" style="align-items:start">
+      <div class="section-head" style="margin:0">
+        <span class="eyebrow" data-i18n="keys.eyebrow">Shortcuts</span>
+        <h2 data-i18n="keys.title">One key away, from anywhere.</h2>
+        <p class="lede" data-i18n="keys.lede">These are the defaults. Record your own in Settings, including ⇧⌘4 if you’d like EasyShoot to replace the built-in tool.</p>
+      </div>
+      <div class="keys">
+        <div class="keyrow"><span data-i18n="keys.area">Capture area</span><span class="kbd"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>4</kbd></span></div>
+        <div class="keyrow"><span data-i18n="keys.window">Capture window</span><span class="kbd"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>5</kbd></span></div>
+        <div class="keyrow"><span data-i18n="keys.full">Capture fullscreen</span><span class="kbd"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>3</kbd></span></div>
+        <div class="keyrow"><span data-i18n="keys.scroll">Scrolling capture</span><span class="kbd"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>6</kbd></span></div>
+        <div class="keyrow"><span data-i18n="keys.clip">Annotate clipboard image</span><span class="kbd"><kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>7</kbd></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy" class="dark">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow" data-i18n="privacy.eyebrow">Privacy</span>
+        <h2 data-i18n="privacy.title">Your screenshots never leave your Mac.</h2>
+        <p class="lede" data-i18n="privacy.lede">Screens show passwords, messages and client work. EasyShoot keeps all of it on your disk, in the folder you choose.</p>
+      </div>
+      <div class="privacy">
+        <div><b data-i18n="privacy.a.t">No account</b><p data-i18n="privacy.a.d">Open it and start capturing. There is nothing to sign up for.</p></div>
+        <div><b data-i18n="privacy.b.t">No cloud</b><p data-i18n="privacy.b.d">Images are saved and copied locally. Nothing is uploaded, ever.</p></div>
+        <div><b data-i18n="privacy.c.t">No tracking</b><p data-i18n="privacy.c.d">No analytics and no telemetry. The app only goes online if you download a Google font.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom:0">
+        <span class="eyebrow" data-i18n="langs.eyebrow">Languages</span>
+        <h2 data-i18n="langs.title">Speaks your language.</h2>
+        <p class="lede" data-i18n="langs.lede">The app and this site are available in five languages. Arabic switches the whole interface to right-to-left.</p>
+      </div>
+      <div class="langs" id="langButtons">
+        <button data-lang="en">English</button><button data-lang="ar">العربية</button><button data-lang="fr">Français</button><button data-lang="es">Español</button><button data-lang="de">Deutsch</button>
+      </div>
+      <div class="rtl-sample">
+        <span class="ar">اضغط هنا للدفع ←</span>
+        <span style="color:var(--muted)" data-i18n="langs.sample">An Arabic note typed in the editor, written right-to-left automatically.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow">FAQ</span><h2 data-i18n="faq.title">Questions, answered.</h2></div>
+      <div class="faq">
+        <details open><summary data-i18n="faq.q1">Is EasyShoot free?</summary><p data-i18n="faq.a1">Yes. Download it and use every feature, with no trial and no subscription.</p></details>
+        <details><summary data-i18n="faq.q2">Which Macs does it run on?</summary><p data-i18n="faq.a2">Any Mac with macOS 14 Sonoma or later, on Apple silicon or Intel. On macOS 26 it uses the new Liquid Glass look.</p></details>
+        <details><summary data-i18n="faq.q3">macOS says it “could not verify” the app. What do I do?</summary><p data-i18n-html="faq.a3">Move EasyShoot to Applications, open it once, then go to System Settings → Privacy &amp; Security and click <b>Open Anyway</b>. You can also run <code>xattr -cr /Applications/EasyShoot.app</code> in Terminal.</p></details>
+        <details><summary data-i18n="faq.q4">Why does it need Screen Recording permission?</summary><p data-i18n="faq.a4">macOS requires it for any app that captures the screen. EasyShoot only uses it when you take a screenshot.</p></details>
+        <details><summary data-i18n="faq.q5">Where is the app after I open it?</summary><p data-i18n="faq.a5">EasyShoot lives in the menu bar at the top-right of your screen. Use the shortcuts, or open the app again to see the welcome window.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap cta">
+      <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
+      <h2 data-i18n="end.title">Make your next screenshot clear.</h2>
+      <p class="lede" data-i18n="end.lede">Free for macOS 14 and later. Works on Apple silicon and Intel.</p>
+      <a class="btn btn-primary" href="https://github.com/Haythamasalama/easyshoot/releases/latest"><svg><use href="#i-apple"/></svg><span data-i18n="cta.download">Download for Mac</span></a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 EasyShoot</span>
+    <span data-i18n="footer.note">Made for Mac. Your screenshots stay yours.</span>
+  </div>
+</footer>
+
+<script>
+const I18N = {
+  en: {},
+  ar: {
+    "nav.features": "المميزات", "nav.scrolling": "الالتقاط مع التمرير", "nav.privacy": "الخصوصية", "nav.faq": "الأسئلة",
+    "cta.download": "حمّل للماك", "cta.tour": "شاهد المميزات",
+    "hero.eyebrow": "أداة لقطات الشاشة للماك",
+    "hero.title": "لقطات شاشة <em>تشرح</em> نفسها.",
+    "hero.lede": "التقط أي جزء من شاشتك، ووضّحه بالأسهم والنصوص والخطوات المرقّمة، وضعه على خلفية أنيقة وشاركه خلال ثوانٍ. كل شيء يبقى على جهازك.",
+    "meta.free": "مجاني", "meta.macos": "macOS 14 أو أحدث", "meta.cloud": "بلا حساب وبلا سحابة",
+    "mock.title": "الدفع", "mock.sub": "راجع طلبك", "mock.card": "البطاقة", "mock.plan": "الخطة", "mock.planValue": "احترافية · سنوية",
+    "mock.total": "الإجمالي", "mock.pay": "ادفع الآن", "mock.note": "اضغط هنا للدفع", "mock.background": "الخلفية", "mock.padding": "الهوامش", "mock.radius": "استدارة الزوايا",
+    "hero.try": "جرّبها: غيّر الخلفية والهوامش والزوايا.",
+    "features.eyebrow": "وصّل فكرتك بسرعة", "features.title": "كل ما تحتاجه لقطة الشاشة، ولا شيء زائد.",
+    "f.annotate.t": "أسهم وأشكال وخطوات", "f.annotate.d": "أسهم ومستطيلات ودوائر وتظليل وقلم وعدّادات مرقّمة. كل علامة تبقى قابلة للتعديل: حرّكها وكبّرها وغيّر لونها.",
+    "f.rtl.t": "العربية والكتابة من اليمين لليسار", "f.rtl.d": "اكتب بالعربي وسيُكتب من اليمين لليسار تلقائياً مع تشكيل صحيح للحروف. استخدم أي خط على جهازك أو حمّل خطاً من Google Fonts.",
+    "f.crop.t": "قص وتغيير حجم وتصدير", "f.crop.d": "اقتصاص حر أو بنسب 1:1 و4:3 و16:9. صدّر بصيغة PNG أو JPEG أو HEIC أو TIFF بأي عرض، مع عرض الحجم النهائي بالبكسل.",
+    "f.bg.t": "خلفيات بلمسة مصمّم", "f.bg.d": "تدرّجات أو ألوان أو خلفية شفافة، مع هوامش وزوايا دائرية وظلال ناعمة ونسب أبعاد ومحاذاة للمنشورات والمستندات.",
+    "f.presets.t": "إعدادات محفوظة لهويتك", "f.presets.d": "احفظ الخلفية والألوان والخطوط وصيغة التصدير كإعداد. اجعله افتراضياً لتتطابق كل لقطة جديدة مع أسلوبك.", "f.presets.tag": "إعداد افتراضي · يُطبَّق تلقائياً",
+    "f.keys.t": "اختصاراتك كما تريد", "f.keys.d": "لكل نوع التقاط اختصار عام تسجّله بنفسك. مفاتيح الأدوات بحرف واحد و⌘+ / ⌘− للنص تجعل التحرير سريعاً.",
+    "scroll.eyebrow": "الالتقاط مع التمرير", "scroll.title": "الصفحة كاملة في صورة واحدة.",
+    "scroll.lede": "حدّد منطقة ثم مرّر. يدمج EasyShoot كل الإطارات في لقطة طويلة واحدة: صفحات ويب كاملة ومحادثات طويلة ومستندات وأكواد.",
+    "scroll.f1": "يعمل في كل التطبيقات لأنه يقرأ الشاشة لا التطبيق.", "scroll.f2": "مرّر بنفسك أو دع التمرير التلقائي يقوم بذلك.", "scroll.f3": "الرؤوس والتذييلات الثابتة تظهر مرة واحدة فقط.",
+    "qa.copy": "نسخ", "qa.save": "حفظ", "qa.eyebrow": "الوصول السريع", "qa.title": "التقط الآن، وقرّر لاحقاً.",
+    "qa.lede": "كل لقطة تظهر في صورة مصغّرة عائمة. انسخها أو احفظها أو اسحبها مباشرة إلى Slack أو البريد، أو افتح المحرر. تجاهلها وستختفي من طريقك.",
+    "keys.eyebrow": "الاختصارات", "keys.title": "على بُعد مفتاح، من أي مكان.", "keys.lede": "هذه هي الاختصارات الافتراضية. سجّل اختصاراتك من الإعدادات، حتى ⇧⌘4 إن أردت أن يحل EasyShoot محل الأداة المدمجة.",
+    "keys.area": "التقاط منطقة", "keys.window": "التقاط نافذة", "keys.full": "التقاط الشاشة كاملة", "keys.scroll": "الالتقاط مع التمرير", "keys.clip": "تحرير صورة الحافظة",
+    "privacy.eyebrow": "الخصوصية", "privacy.title": "لقطاتك لا تغادر جهازك أبداً.", "privacy.lede": "الشاشات تعرض كلمات المرور والرسائل وأعمال العملاء. EasyShoot يُبقي كل ذلك على قرصك، في المجلد الذي تختاره.",
+    "privacy.a.t": "بلا حساب", "privacy.a.d": "افتحه وابدأ الالتقاط. لا يوجد ما تسجّل فيه.",
+    "privacy.b.t": "بلا سحابة", "privacy.b.d": "تُحفظ الصور وتُنسخ محلياً. لا يُرفع أي شيء، أبداً.",
+    "privacy.c.t": "بلا تتبّع", "privacy.c.d": "بلا تحليلات وبلا قياس عن بُعد. يتصل التطبيق بالإنترنت فقط إذا حمّلت خطاً من Google.",
+    "langs.eyebrow": "اللغات", "langs.title": "يتحدث لغتك.", "langs.lede": "التطبيق وهذا الموقع متوفران بخمس لغات. العربية تحوّل الواجهة كاملة من اليمين إلى اليسار.",
+    "langs.sample": "ملاحظة عربية مكتوبة في المحرر، تُكتب من اليمين لليسار تلقائياً.",
+    "faq.title": "أسئلة وأجوبة",
+    "faq.q1": "هل EasyShoot مجاني؟", "faq.a1": "نعم. حمّله واستخدم كل المميزات، بلا فترة تجريبية وبلا اشتراك.",
+    "faq.q2": "على أي أجهزة ماك يعمل؟", "faq.a2": "أي ماك بنظام macOS 14 Sonoma أو أحدث، بمعالج Apple أو Intel. على macOS 26 يستخدم مظهر Liquid Glass الجديد.",
+    "faq.q3": "يقول macOS إنه «تعذّر التحقق» من التطبيق. ماذا أفعل؟", "faq.a3": "انقل EasyShoot إلى مجلد التطبيقات، وافتحه مرة، ثم اذهب إلى إعدادات النظام ← الخصوصية والأمان واضغط <b>Open Anyway</b>. ويمكنك أيضاً تنفيذ <code>xattr -cr /Applications/EasyShoot.app</code> في الطرفية.",
+    "faq.q4": "لماذا يحتاج إذن تسجيل الشاشة؟", "faq.a4": "يشترطه macOS لأي تطبيق يلتقط الشاشة. يستخدمه EasyShoot فقط عندما تلتقط صورة.",
+    "faq.q5": "أين التطبيق بعد فتحه؟", "faq.a5": "EasyShoot موجود في شريط القوائم أعلى يمين الشاشة. استخدم الاختصارات، أو افتح التطبيق مرة أخرى لرؤية نافذة الترحيب.",
+    "end.title": "اجعل لقطتك القادمة أوضح.", "end.lede": "مجاني لنظام macOS 14 وأحدث. يعمل على معالجات Apple وIntel.",
+    "footer.note": "صُنع للماك. لقطاتك تبقى لك."
+  },
+  fr: {
+    "nav.features": "Fonctions", "nav.scrolling": "Capture défilante", "nav.privacy": "Confidentialité", "nav.faq": "FAQ",
+    "cta.download": "Télécharger pour Mac", "cta.tour": "Voir les fonctions",
+    "hero.eyebrow": "Outil de capture d’écran pour macOS",
+    "hero.title": "Des captures qui <em>s’expliquent</em> d’elles-mêmes.",
+    "hero.lede": "Capturez n’importe quelle partie de l’écran, annotez-la avec des flèches, du texte et des étapes numérotées, posez-la sur un bel arrière-plan et partagez-la en quelques secondes. Tout reste sur votre Mac.",
+    "meta.free": "Gratuit", "meta.macos": "macOS 14 Sonoma ou plus récent", "meta.cloud": "Sans compte, sans cloud",
+    "mock.title": "Paiement", "mock.sub": "Vérifiez votre commande", "mock.card": "Carte", "mock.plan": "Formule", "mock.planValue": "Pro · annuel",
+    "mock.total": "Total", "mock.pay": "Payer", "mock.note": "Touchez ici pour payer", "mock.background": "Arrière-plan", "mock.padding": "Marge", "mock.radius": "Arrondi",
+    "hero.try": "Essayez : changez l’arrière-plan, la marge et les coins.",
+    "features.eyebrow": "Allez droit au but", "features.title": "Tout ce qu’il faut à une capture, rien de superflu.",
+    "f.annotate.t": "Flèches, formes et étapes", "f.annotate.d": "Flèches, rectangles, ellipses, surligneur, stylo et compteurs numérotés. Chaque annotation reste modifiable : déplacez-la, redimensionnez-la, changez sa couleur.",
+    "f.rtl.t": "Arabe et texte de droite à gauche", "f.rtl.d": "Tapez en arabe et le texte s’écrit de droite à gauche, avec des lettres correctement liées. Utilisez n’importe quelle police du Mac ou téléchargez-en une sur Google Fonts.",
+    "f.crop.t": "Recadrer, redimensionner, exporter", "f.crop.d": "Recadrage libre ou en 1:1, 4:3 et 16:9. Export PNG, JPEG, HEIC ou TIFF à la largeur voulue, avec la taille finale en pixels affichée.",
+    "f.bg.t": "Des arrière-plans soignés", "f.bg.d": "Dégradés, couleurs unies ou transparence, avec marge, coins arrondis, ombre douce, formats et alignement pour les réseaux et la documentation.",
+    "f.presets.t": "Des préréglages à votre image", "f.presets.d": "Enregistrez arrière-plan, couleurs, polices et format d’export dans un préréglage. Définissez-le par défaut et chaque capture suit votre style.", "f.presets.tag": "Préréglage par défaut · appliqué automatiquement",
+    "f.keys.t": "Vos raccourcis, à votre façon", "f.keys.d": "Chaque type de capture a un raccourci global que vous enregistrez vous-même. Les outils à une lettre et ⌘+ / ⌘− pour le texte accélèrent l’édition.",
+    "scroll.eyebrow": "Capture défilante", "scroll.title": "Toute la page, en une image.",
+    "scroll.lede": "Sélectionnez une zone, puis faites défiler. EasyShoot assemble chaque image en une seule capture : pages web entières, longues conversations, documents et code.",
+    "scroll.f1": "Fonctionne dans toutes les apps : il lit l’écran, pas l’app.", "scroll.f2": "Défilez à la main ou laissez le défilement auto faire le travail.", "scroll.f3": "Les en-têtes et pieds de page fixes n’apparaissent qu’une fois.",
+    "qa.copy": "Copier", "qa.save": "Enregistrer", "qa.eyebrow": "Accès rapide", "qa.title": "Capturez maintenant, décidez ensuite.",
+    "qa.lede": "Chaque capture apparaît dans une petite vignette flottante. Copiez-la, enregistrez-la, glissez-la dans Slack ou Mail, ou ouvrez l’éditeur. Ignorez-la et elle s’efface.",
+    "keys.eyebrow": "Raccourcis", "keys.title": "À une touche, depuis partout.", "keys.lede": "Voici les raccourcis par défaut. Enregistrez les vôtres dans les Réglages, y compris ⇧⌘4 pour remplacer l’outil intégré.",
+    "keys.area": "Capturer une zone", "keys.window": "Capturer une fenêtre", "keys.full": "Capturer l’écran entier", "keys.scroll": "Capture défilante", "keys.clip": "Annoter le presse-papiers",
+    "privacy.eyebrow": "Confidentialité", "privacy.title": "Vos captures ne quittent jamais votre Mac.", "privacy.lede": "Un écran montre des mots de passe, des messages et le travail de vos clients. EasyShoot garde tout sur votre disque, dans le dossier de votre choix.",
+    "privacy.a.t": "Sans compte", "privacy.a.d": "Ouvrez l’app et capturez. Aucune inscription.",
+    "privacy.b.t": "Sans cloud", "privacy.b.d": "Les images sont enregistrées et copiées localement. Rien n’est envoyé, jamais.",
+    "privacy.c.t": "Sans pistage", "privacy.c.d": "Ni statistiques ni télémétrie. L’app ne se connecte que si vous téléchargez une police Google.",
+    "langs.eyebrow": "Langues", "langs.title": "Parle votre langue.", "langs.lede": "L’app et ce site existent en cinq langues. L’arabe affiche toute l’interface de droite à gauche.",
+    "langs.sample": "Une note en arabe tapée dans l’éditeur, écrite automatiquement de droite à gauche.",
+    "faq.title": "Questions fréquentes",
+    "faq.q1": "EasyShoot est-il gratuit ?", "faq.a1": "Oui. Téléchargez-le et profitez de toutes les fonctions, sans essai ni abonnement.",
+    "faq.q2": "Sur quels Mac fonctionne-t-il ?", "faq.a2": "Tout Mac sous macOS 14 Sonoma ou plus récent, Apple silicon ou Intel. Sous macOS 26, il adopte le nouveau style Liquid Glass.",
+    "faq.q3": "macOS indique qu’il ne peut pas vérifier l’app. Que faire ?", "faq.a3": "Placez EasyShoot dans Applications, ouvrez-le une fois, puis allez dans Réglages Système → Confidentialité et sécurité et cliquez sur <b>Ouvrir quand même</b>. Vous pouvez aussi lancer <code>xattr -cr /Applications/EasyShoot.app</code> dans Terminal.",
+    "faq.q4": "Pourquoi l’autorisation d’enregistrement de l’écran ?", "faq.a4": "macOS l’exige pour toute app qui capture l’écran. EasyShoot ne l’utilise que lorsque vous faites une capture.",
+    "faq.q5": "Où est l’app une fois ouverte ?", "faq.a5": "EasyShoot se trouve dans la barre des menus, en haut à droite. Utilisez les raccourcis, ou rouvrez l’app pour afficher la fenêtre de bienvenue.",
+    "end.title": "Rendez votre prochaine capture limpide.", "end.lede": "Gratuit pour macOS 14 et plus récent. Apple silicon et Intel.",
+    "footer.note": "Conçu pour Mac. Vos captures restent à vous."
+  },
+  es: {
+    "nav.features": "Funciones", "nav.scrolling": "Captura con desplazamiento", "nav.privacy": "Privacidad", "nav.faq": "Preguntas",
+    "cta.download": "Descargar para Mac", "cta.tour": "Ver qué hace",
+    "hero.eyebrow": "Herramienta de capturas para macOS",
+    "hero.title": "Capturas que se <em>explican</em> solas.",
+    "hero.lede": "Captura cualquier parte de la pantalla, anótala con flechas, texto y pasos numerados, ponla sobre un fondo cuidado y compártela en segundos. Todo se queda en tu Mac.",
+    "meta.free": "Gratis", "meta.macos": "macOS 14 Sonoma o posterior", "meta.cloud": "Sin cuenta, sin nube",
+    "mock.title": "Pago", "mock.sub": "Revisa tu pedido", "mock.card": "Tarjeta", "mock.plan": "Plan", "mock.planValue": "Pro · anual",
+    "mock.total": "Total", "mock.pay": "Pagar ahora", "mock.note": "Toca aquí para pagar", "mock.background": "Fondo", "mock.padding": "Margen", "mock.radius": "Esquinas",
+    "hero.try": "Pruébalo: cambia el fondo, el margen y las esquinas.",
+    "features.eyebrow": "Ve al grano", "features.title": "Todo lo que necesita una captura, nada que sobre.",
+    "f.annotate.t": "Flechas, formas y pasos", "f.annotate.d": "Flechas, rectángulos, elipses, resaltador, lápiz y contadores numerados. Cada marca sigue siendo editable: muévela, cambia su tamaño o su color.",
+    "f.rtl.t": "Árabe y texto de derecha a izquierda", "f.rtl.d": "Escribe en árabe y se escribe de derecha a izquierda, con las letras bien unidas. Usa cualquier fuente de tu Mac o descarga una de Google Fonts.",
+    "f.crop.t": "Recorta, redimensiona, exporta", "f.crop.d": "Recorte libre o en 1:1, 4:3 y 16:9. Exporta PNG, JPEG, HEIC o TIFF al ancho que quieras, viendo el tamaño final en píxeles.",
+    "f.bg.t": "Fondos con diseño", "f.bg.d": "Degradados, colores sólidos o transparencia, con margen, esquinas redondeadas, sombras suaves, proporciones y alineación para redes y documentación.",
+    "f.presets.t": "Preajustes para tu marca", "f.presets.d": "Guarda fondo, colores, fuentes y formato de exportación como preajuste. Hazlo predeterminado y cada captura seguirá tu estilo.", "f.presets.tag": "Preajuste predeterminado · se aplica solo",
+    "f.keys.t": "Tus atajos, a tu manera", "f.keys.d": "Cada tipo de captura tiene un atajo global que puedes grabar tú. Herramientas con una sola tecla y ⌘+ / ⌘− para el texto hacen la edición rápida.",
+    "scroll.eyebrow": "Captura con desplazamiento", "scroll.title": "La página entera, en una imagen.",
+    "scroll.lede": "Selecciona un área y desplázate. EasyShoot une cada fotograma en una sola captura larga: páginas web completas, chats largos, documentos y código.",
+    "scroll.f1": "Funciona en todas las apps: lee la pantalla, no la app.", "scroll.f2": "Desplázate a mano o deja que lo haga el desplazamiento automático.", "scroll.f3": "Las cabeceras y pies fijos aparecen una sola vez.",
+    "qa.copy": "Copiar", "qa.save": "Guardar", "qa.eyebrow": "Acceso rápido", "qa.title": "Captura ahora, decide después.",
+    "qa.lede": "Cada captura aparece en una pequeña miniatura flotante. Cópiala, guárdala, arrástrala a Slack o Mail, o abre el editor. Si la ignoras, se aparta.",
+    "keys.eyebrow": "Atajos", "keys.title": "A una tecla, desde cualquier sitio.", "keys.lede": "Estos son los atajos predeterminados. Graba los tuyos en Ajustes, incluso ⇧⌘4 si quieres que EasyShoot sustituya a la herramienta del sistema.",
+    "keys.area": "Capturar área", "keys.window": "Capturar ventana", "keys.full": "Capturar pantalla completa", "keys.scroll": "Captura con desplazamiento", "keys.clip": "Anotar imagen del portapapeles",
+    "privacy.eyebrow": "Privacidad", "privacy.title": "Tus capturas nunca salen de tu Mac.", "privacy.lede": "La pantalla muestra contraseñas, mensajes y trabajo de clientes. EasyShoot lo guarda todo en tu disco, en la carpeta que elijas.",
+    "privacy.a.t": "Sin cuenta", "privacy.a.d": "Ábrela y empieza a capturar. No hay registro.",
+    "privacy.b.t": "Sin nube", "privacy.b.d": "Las imágenes se guardan y copian en local. No se sube nada, nunca.",
+    "privacy.c.t": "Sin rastreo", "privacy.c.d": "Sin analíticas ni telemetría. La app solo se conecta si descargas una fuente de Google.",
+    "langs.eyebrow": "Idiomas", "langs.title": "Habla tu idioma.", "langs.lede": "La app y esta web están en cinco idiomas. El árabe muestra toda la interfaz de derecha a izquierda.",
+    "langs.sample": "Una nota en árabe escrita en el editor, de derecha a izquierda automáticamente.",
+    "faq.title": "Preguntas frecuentes",
+    "faq.q1": "¿EasyShoot es gratis?", "faq.a1": "Sí. Descárgalo y usa todas las funciones, sin prueba ni suscripción.",
+    "faq.q2": "¿En qué Mac funciona?", "faq.a2": "En cualquier Mac con macOS 14 Sonoma o posterior, con Apple silicon o Intel. En macOS 26 usa el nuevo aspecto Liquid Glass.",
+    "faq.q3": "macOS dice que no puede verificar la app. ¿Qué hago?", "faq.a3": "Mueve EasyShoot a Aplicaciones, ábrelo una vez y ve a Ajustes del Sistema → Privacidad y seguridad y pulsa <b>Abrir igualmente</b>. También puedes ejecutar <code>xattr -cr /Applications/EasyShoot.app</code> en Terminal.",
+    "faq.q4": "¿Por qué necesita permiso de grabación de pantalla?", "faq.a4": "macOS lo exige a cualquier app que capture la pantalla. EasyShoot solo lo usa cuando haces una captura.",
+    "faq.q5": "¿Dónde está la app después de abrirla?", "faq.a5": "EasyShoot vive en la barra de menús, arriba a la derecha. Usa los atajos o vuelve a abrir la app para ver la ventana de bienvenida.",
+    "end.title": "Haz que tu próxima captura sea clara.", "end.lede": "Gratis para macOS 14 y posterior. Apple silicon e Intel.",
+    "footer.note": "Hecho para Mac. Tus capturas son tuyas."
+  },
+  de: {
+    "nav.features": "Funktionen", "nav.scrolling": "Scroll-Aufnahme", "nav.privacy": "Datenschutz", "nav.faq": "FAQ",
+    "cta.download": "Für Mac laden", "cta.tour": "Funktionen ansehen",
+    "hero.eyebrow": "Bildschirmfoto-Tool für macOS",
+    "hero.title": "Bildschirmfotos, die sich selbst <em>erklären</em>.",
+    "hero.lede": "Nimm jeden Teil deines Bildschirms auf, markiere ihn mit Pfeilen, Text und nummerierten Schritten, setze ihn auf einen sauberen Hintergrund und teile ihn in Sekunden. Alles bleibt auf deinem Mac.",
+    "meta.free": "Kostenlos", "meta.macos": "macOS 14 Sonoma oder neuer", "meta.cloud": "Kein Konto, keine Cloud",
+    "mock.title": "Kasse", "mock.sub": "Bestellung prüfen", "mock.card": "Karte", "mock.plan": "Tarif", "mock.planValue": "Pro · jährlich",
+    "mock.total": "Summe", "mock.pay": "Jetzt bezahlen", "mock.note": "Hier tippen zum Bezahlen", "mock.background": "Hintergrund", "mock.padding": "Abstand", "mock.radius": "Ecken",
+    "hero.try": "Probier es: Hintergrund, Abstand und Ecken ändern.",
+    "features.eyebrow": "Schnell auf den Punkt", "features.title": "Alles, was ein Bildschirmfoto braucht. Nichts darüber hinaus.",
+    "f.annotate.t": "Pfeile, Formen und Schritte", "f.annotate.d": "Pfeile, Rechtecke, Ellipsen, Textmarker, Stift und nummerierte Zähler. Jede Markierung bleibt bearbeitbar: verschieben, skalieren, umfärben.",
+    "f.rtl.t": "Arabisch und Rechts-nach-links-Text", "f.rtl.d": "Tippe auf Arabisch und der Text läuft automatisch von rechts nach links, mit korrekt verbundenen Buchstaben. Nutze jede Schrift deines Macs oder lade eine von Google Fonts.",
+    "f.crop.t": "Zuschneiden, skalieren, exportieren", "f.crop.d": "Frei zuschneiden oder auf 1:1, 4:3 und 16:9. Export als PNG, JPEG, HEIC oder TIFF in jeder Breite, mit der finalen Pixelgröße im Blick.",
+    "f.bg.t": "Hintergründe mit Design", "f.bg.d": "Verläufe, Volltonfarben oder transparent, mit Abstand, runden Ecken, weichen Schatten, Seitenverhältnissen und Ausrichtung für Social Media und Doku.",
+    "f.presets.t": "Vorlagen für deine Marke", "f.presets.d": "Sichere Hintergrund, Farben, Schriften und Exportformat als Vorlage. Mach sie zum Standard und jedes neue Bildschirmfoto passt zu deinem Stil.", "f.presets.tag": "Standardvorlage · automatisch angewendet",
+    "f.keys.t": "Deine Kurzbefehle, dein Weg", "f.keys.d": "Jede Aufnahmeart hat einen globalen Kurzbefehl, den du selbst festlegst. Werkzeuge per Buchstabe und ⌘+ / ⌘− für Text machen das Bearbeiten schnell.",
+    "scroll.eyebrow": "Scroll-Aufnahme", "scroll.title": "Die ganze Seite in einem Bild.",
+    "scroll.lede": "Wähle einen Bereich und scrolle. EasyShoot fügt alle Einzelbilder zu einem langen Bildschirmfoto zusammen: ganze Webseiten, lange Chats, Dokumente und Code.",
+    "scroll.f1": "Funktioniert in jeder App, weil es den Bildschirm liest, nicht die App.", "scroll.f2": "Scrolle selbst oder lass das automatische Scrollen arbeiten.", "scroll.f3": "Feste Kopf- und Fußzeilen erscheinen nur einmal.",
+    "qa.copy": "Kopieren", "qa.save": "Sichern", "qa.eyebrow": "Schnellzugriff", "qa.title": "Jetzt aufnehmen, später entscheiden.",
+    "qa.lede": "Jede Aufnahme landet in einer kleinen schwebenden Vorschau. Kopieren, sichern, direkt in Slack oder Mail ziehen oder den Editor öffnen. Ignorierst du sie, verschwindet sie.",
+    "keys.eyebrow": "Kurzbefehle", "keys.title": "Eine Taste entfernt, von überall.", "keys.lede": "Das sind die Standards. Lege eigene in den Einstellungen fest, auch ⇧⌘4, wenn EasyShoot das eingebaute Tool ersetzen soll.",
+    "keys.area": "Bereich aufnehmen", "keys.window": "Fenster aufnehmen", "keys.full": "Ganzen Bildschirm aufnehmen", "keys.scroll": "Scroll-Aufnahme", "keys.clip": "Bild aus Zwischenablage bearbeiten",
+    "privacy.eyebrow": "Datenschutz", "privacy.title": "Deine Bildschirmfotos verlassen nie deinen Mac.", "privacy.lede": "Bildschirme zeigen Passwörter, Nachrichten und Kundenprojekte. EasyShoot behält alles auf deiner Festplatte, im Ordner deiner Wahl.",
+    "privacy.a.t": "Kein Konto", "privacy.a.d": "Öffnen und loslegen. Keine Anmeldung.",
+    "privacy.b.t": "Keine Cloud", "privacy.b.d": "Bilder werden lokal gesichert und kopiert. Nichts wird hochgeladen, niemals.",
+    "privacy.c.t": "Kein Tracking", "privacy.c.d": "Keine Analysen, keine Telemetrie. Die App geht nur online, wenn du eine Google-Schrift lädst.",
+    "langs.eyebrow": "Sprachen", "langs.title": "Spricht deine Sprache.", "langs.lede": "App und Website gibt es in fünf Sprachen. Mit Arabisch läuft die gesamte Oberfläche von rechts nach links.",
+    "langs.sample": "Eine arabische Notiz im Editor, automatisch von rechts nach links geschrieben.",
+    "faq.title": "Häufige Fragen",
+    "faq.q1": "Ist EasyShoot kostenlos?", "faq.a1": "Ja. Lade es und nutze alle Funktionen, ohne Testphase und ohne Abo.",
+    "faq.q2": "Auf welchen Macs läuft es?", "faq.a2": "Auf jedem Mac mit macOS 14 Sonoma oder neuer, mit Apple Silicon oder Intel. Unter macOS 26 nutzt es den neuen Liquid-Glass-Look.",
+    "faq.q3": "macOS kann die App „nicht überprüfen“. Was tun?", "faq.a3": "Bewege EasyShoot in den Ordner Programme, öffne es einmal und klicke dann unter Systemeinstellungen → Datenschutz & Sicherheit auf <b>Dennoch öffnen</b>. Alternativ im Terminal: <code>xattr -cr /Applications/EasyShoot.app</code>.",
+    "faq.q4": "Warum braucht es die Berechtigung zur Bildschirmaufnahme?", "faq.a4": "macOS verlangt sie von jeder App, die den Bildschirm aufnimmt. EasyShoot nutzt sie nur, wenn du ein Bildschirmfoto machst.",
+    "faq.q5": "Wo ist die App nach dem Öffnen?", "faq.a5": "EasyShoot sitzt in der Menüleiste oben rechts. Nutze die Kurzbefehle oder öffne die App erneut, um das Willkommensfenster zu sehen.",
+    "end.title": "Mach dein nächstes Bildschirmfoto klar.", "end.lede": "Kostenlos für macOS 14 und neuer. Apple Silicon und Intel.",
+    "footer.note": "Für den Mac gemacht. Deine Bildschirmfotos gehören dir."
+  }
+};
+
+const SUPPORTED = Object.keys(I18N);
+const originals = new Map();
+document.querySelectorAll("[data-i18n],[data-i18n-html]").forEach(el => originals.set(el, el.innerHTML));
+
+function applyLang(lang) {
+  if (!SUPPORTED.includes(lang)) lang = "en";
+  const dict = I18N[lang];
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = dict[key] ?? new DOMParser().parseFromString(originals.get(el), "text/html").body.textContent;
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    const key = el.getAttribute("data-i18n-html");
+    el.innerHTML = dict[key] ?? originals.get(el);
+  });
+  document.getElementById("lang").value = lang;
+  document.querySelectorAll("#langButtons button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  try { localStorage.setItem("easyshoot-lang", lang); } catch (e) {}
+}
+
+function initialLang() {
+  try { const saved = localStorage.getItem("easyshoot-lang"); if (saved) return saved; } catch (e) {}
+  const nav = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+  return nav.slice(0, 2).toLowerCase();
+}
+
+document.getElementById("lang").addEventListener("change", e => applyLang(e.target.value));
+document.querySelectorAll("#langButtons button").forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang)));
+applyLang(initialLang());
+
+// Live background demo in the hero.
+const frame = document.getElementById("frame");
+document.querySelectorAll("#swatches .swatch").forEach(sw => sw.addEventListener("click", () => {
+  document.querySelectorAll("#swatches .swatch").forEach(s => s.setAttribute("aria-pressed", "false"));
+  sw.setAttribute("aria-pressed", "true");
+  frame.style.setProperty("--bg-fill", sw.dataset.fill);
+}));
+document.getElementById("pad").addEventListener("input", e => frame.style.setProperty("--pad", e.target.value + "px"));
+document.getElementById("rad").addEventListener("input", e => frame.style.setProperty("--shot-radius", e.target.value + "px"));
+</script>
+</body>
+</html>

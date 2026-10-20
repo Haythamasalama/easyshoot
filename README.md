@@ -34,6 +34,14 @@ A native macOS screenshot app inspired by CleanShot X. You can capture, annotate
 - Resize by percent or exact width (the output size is shown live)
 - Copy, Save (to your chosen folder), Save As…, or drag out
 
+## Website
+
+`website/` holds the marketing site in five languages, with right-to-left layout for Arabic. GitHub Pages deploys it (see `website/README.md`). To publish the app for the site's **Download** button, push a version tag, for example `git tag v1.0.0 && git push origin v1.0.0`.
+
+## Languages
+
+The app is translated into English, Arabic (right-to-left), French, Spanish and German. To switch language, go to **Settings → Language**. Translations live in `Resources/Localization/*.lproj/Localizable.strings`, and `python3 scripts/check-localizations.py` checks that every string has a translation (CI runs this check too).
+
 ## Requirements
 
 - macOS 14 Sonoma or later
@@ -74,6 +82,8 @@ If macOS says *"EasyShoot.app" Not Opened*, the build isn't notarized by Apple. 
 > Builds are ad-hoc signed, so macOS may ask for Screen Recording again after you rebuild. Signing with a real identity avoids this: `SIGN_IDENTITY="Developer ID Application: …" ./scripts/build-app.sh`.
 
 ## Shortcuts
+
+These are the defaults. You can record your own in **Settings → Shortcuts**.
 
 | Action | Shortcut |
 |---|---|

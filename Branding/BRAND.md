@@ -12,6 +12,7 @@
 | `AppIcon-1024.png` | Rendered icon for stores, the website and social media |
 | `MenuBarMark.svg` | Single-colour mark for the menu bar, favicons and monochrome uses |
 | `../Resources/AppIcon.iconset` | All icon sizes; `build-app.sh` turns them into `AppIcon.icns` |
+| `../website/favicon.svg`, `../website/og.png` | Website favicon and 1200 × 630 social preview |
 
 ## Colour
 | Name | Hex | Use |
@@ -25,8 +26,9 @@ Signal orange must cover less than ~10% of any layout. Don't add gradients or ot
 
 ## Type
 - **App:** SF Pro, and SF Arabic for Arabic (the system fonts).
-- **Web and marketing:** Inter for Latin text, IBM Plex Sans Arabic for Arabic.
-- **Headlines:** bold or extra-bold, with letter spacing of −0.03 to −0.045 em.
+- **Web and marketing:** **Bricolage Grotesque** (800) for headlines, **Instrument Sans** for body text, and **JetBrains Mono** for keys and specs.
+- **Arabic on the web:** **Readex Pro** for both headlines and body text.
+- **Headlines:** extra-bold, with letter spacing of −0.03 em (0 for Arabic).
 
 ## Wordmark
 **Easy**Shoot, with "Easy" in graphite (or paper on dark) and "Shoot" in signal. It's one word with a capital S.
