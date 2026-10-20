@@ -11,7 +11,10 @@ struct EditorView: View {
                     CanvasRepresentable(model: model)
                         .frame(minWidth: 480, minHeight: 360)
                     VStack(spacing: 8) {
-                        FloatingToolbar(model: model)
+                        ViewThatFits(in: .horizontal) {
+                            FloatingToolbar(model: model)
+                            FloatingToolbar(model: model, compact: true)
+                        }
                         if model.isCropping {
                             CropBar(model: model)
                         } else if model.showsTextBar {
@@ -52,6 +55,9 @@ private struct ToolButtonStyle: ButtonStyle {
 
 struct FloatingToolbar: View {
     @ObservedObject var model: EditorModel
+    /// Folds the colour row into one swatch with a popover, for narrow windows.
+    var compact = false
+    @State private var showColors = false
 
     private let groups: [[Tool]] = [
         [.select, .crop],
@@ -82,7 +88,23 @@ struct FloatingToolbar: View {
 
             Divider().frame(height: 18).padding(.horizontal, 3)
 
-            ColorDots(model: model)
+            if compact {
+                Button { showColors.toggle() } label: {
+                    Circle()
+                        .fill(model.activeStyle.color.color)
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
+                        .frame(width: 18, height: 18)
+                        .frame(width: 30, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(ToolButtonStyle(selected: false))
+                .help(L("Color"))
+                .popover(isPresented: $showColors, arrowEdge: .bottom) {
+                    ColorDots(model: model).padding(10)
+                }
+            } else {
+                ColorDots(model: model)
+            }
 
             Divider().frame(height: 18).padding(.horizontal, 3)
 
@@ -132,9 +154,7 @@ struct ColorDots: View {
                 }
                 .buttonStyle(.plain)
             }
-            ColorPicker("", selection: colorBinding, supportsOpacity: true)
-                .labelsHidden()
-                .frame(width: 26)
+            ColorWellButton(color: colorBinding, rainbow: true, size: 15)
                 .help(L("More colors"))
         }
     }
@@ -244,14 +264,10 @@ struct InspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
-                ForEach(Tab.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(12)
+            FittingSegments(selection: $tab, options: Tab.allCases.map { ($0, $0.title) })
+                .padding(12)
 
-            ScrollView {
+            ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
                     switch tab {
                     case .style: StyleInspector(model: model)
@@ -261,7 +277,7 @@ struct InspectorView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .containerRelativeFrame(.horizontal, alignment: .leading)
             }
         }
         .background(.background.secondary)
@@ -299,14 +315,121 @@ struct LabeledSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(title)
-                Spacer()
-                Text(format(value)).monospacedDigit().foregroundStyle(.secondary)
+                Text(title).lineLimit(1)
+                Spacer(minLength: 8)
+                Text(format(value)).monospacedDigit().foregroundStyle(.secondary).fixedSize()
             }
             .font(.callout)
             Slider(value: $value, in: range)
                 .controlSize(.small)
         }
+    }
+}
+
+/// A caption above a control, for rows too narrow to hold both side by side.
+struct LabeledRow<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.callout)
+            content
+        }
+    }
+}
+
+struct ColorRow: View {
+    let title: String
+    @Binding var color: Color
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            ColorWellButton(color: $color, supportsOpacity: false, size: 22)
+        }
+    }
+}
+
+/// A segmented control whose segments share the width and shrink their labels,
+/// so it never overflows a narrow panel or a longer translation.
+struct FittingSegments<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [(Value, String)]
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options.indices, id: \.self) { index in
+                let option = options[index]
+                let selected = option.0 == selection
+                Button { selection = option.0 } label: {
+                    Text(option.1)
+                        .font(.callout.weight(selected ? .semibold : .regular))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, minHeight: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(selected ? Color.primary : Color.secondary)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(selected ? Color.primary.opacity(0.13) : .clear)
+                )
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
+        .animation(.easeOut(duration: 0.15), value: selection)
+    }
+}
+
+/// A round colour well that opens the system colour panel. SwiftUI's ColorPicker
+/// draws a wide capsule on macOS 26, which breaks tight rows like the toolbar.
+struct ColorWellButton: View {
+    @Binding var color: Color
+    var supportsOpacity = true
+    var rainbow = false
+    var size: CGFloat = 20
+    @StateObject private var bridge = ColorPanelBridge()
+
+    var body: some View {
+        Button {
+            bridge.open(color: NSColor(color), showsAlpha: supportsOpacity) { color = Color(nsColor: $0) }
+        } label: {
+            Circle()
+                .fill(rainbow
+                      ? AnyShapeStyle(AngularGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red], center: .center))
+                      : AnyShapeStyle(color))
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
+                .frame(width: size, height: size)
+                .padding(3)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+@MainActor
+final class ColorPanelBridge: NSObject, ObservableObject {
+    private var onChange: ((NSColor) -> Void)?
+
+    func open(color: NSColor, showsAlpha: Bool, onChange: @escaping (NSColor) -> Void) {
+        let panel = NSColorPanel.shared
+        panel.showsAlpha = showsAlpha
+        panel.setTarget(nil)
+        panel.color = color
+        self.onChange = onChange
+        panel.setTarget(self)
+        panel.setAction(#selector(colorChanged(_:)))
+        panel.orderFront(nil)
+    }
+
+    @objc private func colorChanged(_ sender: NSColorPanel) {
+        onChange?(sender.color)
     }
 }
 
@@ -341,7 +464,8 @@ struct StyleInspector: View {
 
         InspectorSection(title: L("Color")) {
             HStack {
-                ColorPicker(L("Color"), selection: color, supportsOpacity: true)
+                Text(L("Color"))
+                ColorWellButton(color: color)
                 Spacer()
                 Toggle(L("Shadow"), isOn: style.shadow)
                     .toggleStyle(.switch)
@@ -358,7 +482,7 @@ struct StyleInspector: View {
                 Text(L("Font"))
                 Spacer()
                 FontPickerButton(fontName: style.fontName)
-                    .frame(width: 150)
+                    .frame(maxWidth: 150)
             }
             HStack {
                 Text(L("Size"))
@@ -369,14 +493,12 @@ struct StyleInspector: View {
             }
             Slider(value: style.fontSize, in: 8...160)
                 .controlSize(.small)
-            Picker(L("Background"), selection: style.textStyle) {
-                ForEach(TextStyleKind.allCases) { Text($0.title).tag($0) }
+            LabeledRow(title: L("Background")) {
+                FittingSegments(selection: style.textStyle, options: TextStyleKind.allCases.map { ($0, $0.title) })
             }
-            .pickerStyle(.segmented)
-            Picker(L("Direction"), selection: style.textDirection) {
-                ForEach(TextDirection.allCases) { Text($0.title).tag($0) }
+            LabeledRow(title: L("Direction")) {
+                FittingSegments(selection: style.textDirection, options: TextDirection.allCases.map { ($0, $0.title) })
             }
-            .pickerStyle(.segmented)
             Text(L("Auto detects Arabic and Hebrew and writes right-to-left. Drag the corner of a selected text to resize it."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -417,11 +539,7 @@ struct BackgroundInspector: View {
 
         Group {
             InspectorSection(title: L("Fill")) {
-                Picker("", selection: bg.fill) {
-                    ForEach(BackgroundFill.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                FittingSegments(selection: bg.fill, options: BackgroundFill.allCases.map { ($0, $0.title) })
 
                 switch model.doc.background.fill {
                 case .gradient:
@@ -436,10 +554,10 @@ struct BackgroundInspector: View {
                         }
                     }
                 case .solid:
-                    ColorPicker(L("Color"), selection: colorBinding(\.solidColor), supportsOpacity: false)
+                    ColorRow(title: L("Color"), color: colorBinding(\.solidColor))
                 case .custom:
-                    ColorPicker(L("Start"), selection: colorBinding(\.customStart), supportsOpacity: false)
-                    ColorPicker(L("End"), selection: colorBinding(\.customEnd), supportsOpacity: false)
+                    ColorRow(title: L("Start"), color: colorBinding(\.customStart))
+                    ColorRow(title: L("End"), color: colorBinding(\.customEnd))
                     LabeledSlider(title: L("Angle"),
                                   value: Binding(get: { CGFloat(model.doc.background.customAngle) },
                                                  set: { model.doc.background.customAngle = Double($0) }),
@@ -460,7 +578,7 @@ struct BackgroundInspector: View {
                     ForEach(AspectRatio.allCases) { Text($0.title).tag($0) }
                 }
                 HStack(alignment: .top) {
-                    Text(L("Alignment")).font(.callout)
+                    Text(L("Alignment")).font(.callout).lineLimit(1)
                     Spacer()
                     Grid(horizontalSpacing: 4, verticalSpacing: 4) {
                         ForEach(0..<3, id: \.self) { row in
@@ -472,7 +590,7 @@ struct BackgroundInspector: View {
                                     } label: {
                                         RoundedRectangle(cornerRadius: 3)
                                             .fill(model.doc.background.alignment == alignment ? Color.accentColor : Color.secondary.opacity(0.25))
-                                            .frame(width: 24, height: 16)
+                                            .frame(width: 22, height: 15)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -492,11 +610,7 @@ struct ExportInspector: View {
 
     var body: some View {
         InspectorSection(title: L("Format")) {
-            Picker("", selection: $model.export.format) {
-                ForEach(ExportFormat.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            FittingSegments(selection: $model.export.format, options: ExportFormat.allCases.map { ($0, $0.title) })
             if model.export.format.supportsQuality {
                 LabeledSlider(title: L("Quality"),
                               value: Binding(get: { CGFloat(model.export.quality) }, set: { model.export.quality = Double($0) }),
@@ -505,11 +619,7 @@ struct ExportInspector: View {
         }
 
         InspectorSection(title: L("Resize")) {
-            Picker("", selection: $model.export.resizeMode) {
-                ForEach(ResizeMode.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            FittingSegments(selection: $model.export.resizeMode, options: ResizeMode.allCases.map { ($0, $0.title) })
 
             switch model.export.resizeMode {
             case .original:
@@ -523,7 +633,7 @@ struct ExportInspector: View {
                     Text(L("Width"))
                     TextField("", value: $model.export.width, format: .number)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 90)
+                        .frame(maxWidth: 90)
                     Text("px").foregroundStyle(.secondary)
                 }
             }
