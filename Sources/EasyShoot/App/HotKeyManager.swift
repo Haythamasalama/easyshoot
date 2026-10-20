@@ -1,0 +1,68 @@
+import Carbon.HIToolbox
+import Foundation
+
+/// System-wide keyboard shortcuts via Carbon's RegisterEventHotKey (no Accessibility permission needed).
+final class HotKeyManager {
+    static let shared = HotKeyManager()
+
+    private var handlers: [UInt32: () -> Void] = [:]
+    private var refs: [EventHotKeyRef] = []
+    private var eventHandler: EventHandlerRef?
+    private var nextID: UInt32 = 1
+
+    @discardableResult
+    func register(keyCode: Int, modifiers: Int, handler: @escaping () -> Void) -> Bool {
+        installHandlerIfNeeded()
+        let id = nextID
+        nextID += 1
+        let hotKeyID = EventHotKeyID(signature: OSType(0x4553_4854), id: id) // 'ESHT'
+        var ref: EventHotKeyRef?
+        let status = RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers), hotKeyID, GetApplicationEventTarget(), 0, &ref)
+        guard status == noErr, let ref else { return false }
+        refs.append(ref)
+        handlers[id] = handler
+        return true
+    }
+
+    func unregisterAll() {
+        refs.forEach { UnregisterEventHotKey($0) }
+        refs.removeAll()
+        handlers.removeAll()
+    }
+
+    fileprivate func fire(_ id: UInt32) {
+        handlers[id]?()
+    }
+
+    private func installHandlerIfNeeded() {
+        guard eventHandler == nil else { return }
+        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, _ -> OSStatus in
+            var hotKeyID = EventHotKeyID()
+            let status = GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                                           nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
+            guard status == noErr else { return status }
+            let id = hotKeyID.id
+            DispatchQueue.main.async { HotKeyManager.shared.fire(id) }
+            return noErr
+        }, 1, &spec, nil, &eventHandler)
+    }
+}
+
+/// The default global shortcuts (⌥⇧⌘ + number, so they don't clash with macOS's own ⇧⌘3/4/5).
+struct Shortcut {
+    let title: String
+    let keyCode: Int
+    let key: String
+
+    static let modifiers = cmdKey | shiftKey | optionKey
+    static let display = "⌥⇧⌘"
+
+    static let captureArea = Shortcut(title: "Capture Area", keyCode: kVK_ANSI_4, key: "4")
+    static let captureFullscreen = Shortcut(title: "Capture Fullscreen", keyCode: kVK_ANSI_3, key: "3")
+    static let captureWindow = Shortcut(title: "Capture Window", keyCode: kVK_ANSI_5, key: "5")
+    static let scrollingCapture = Shortcut(title: "Scrolling Capture", keyCode: kVK_ANSI_6, key: "6")
+    static let openLast = Shortcut(title: "Annotate Clipboard Image", keyCode: kVK_ANSI_7, key: "7")
+
+    static let all: [Shortcut] = [captureArea, captureWindow, captureFullscreen, scrollingCapture, openLast]
+}
