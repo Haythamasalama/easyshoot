@@ -2,8 +2,7 @@ name: Website
 
 on:
   push:
-    # main once it exists; the current default branch until then
-    branches: [main, claude/cleanshot-mac-app-au2vqu]
+    branches: [main]
     paths: ["website/**"]
   workflow_dispatch:
 

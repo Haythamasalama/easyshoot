@@ -16,7 +16,7 @@ Free, open source, and private: your screenshots never leave your Mac.
 ![Swift](https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-FF5A1F.svg)](CONTRIBUTING.md)
 
-**[⬇ Download for Mac](https://github.com/Haythamasalama/easyshoot/releases/latest)** &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Build from source](#build-from-source) &nbsp;·&nbsp; [Contribute](#contributing)
+**[⬇ Download for Mac](https://github.com/Haythamasalama/easyshoot/releases/latest)** &nbsp;·&nbsp; [Website](https://easyshoot.haythamasalama.me) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Build from source](#build-from-source) &nbsp;·&nbsp; [Contribute](#contributing)
 
 <br>
 
