@@ -83,7 +83,10 @@ final class LayoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(toolbar.maxX, canvas.maxX + tolerance, "\(name): toolbar spills out of the canvas")
 
         guard inspectorShown else {
-            XCTAssertNil(f["inspector"], "\(name): inspector is visible although hidden")
+            // The system inspector may keep its content alive, collapsed, while it is closed.
+            if let inspector = f["inspector"] {
+                XCTAssertLessThan(inspector.width, EditorView.inspectorWidthRange.lowerBound, "\(name): inspector is visible although hidden")
+            }
             XCTAssertEqual(canvas.width, size.width, accuracy: tolerance + 1, "\(name): canvas doesn't use the free width")
             return
         }
@@ -212,6 +215,8 @@ final class LayoutTests: XCTestCase {
             .frame(width: size.width, height: size.height)
         let hosting = NSHostingView(rootView: root)
         hosting.frame = CGRect(origin: .zero, size: size)
+        // In Arabic, AppKit itself runs right-to-left too (the system inspector column follows it).
+        hosting.userInterfaceLayoutDirection = direction == .rightToLeft ? .rightToLeft : .leftToRight
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         // ARC owns the window; letting AppKit also release it on close crashes the test run.
         window.isReleasedWhenClosed = false

@@ -49,7 +49,8 @@ struct EditorView: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
             }
             // The system inspector column: drag its edge to resize it (with the column-resize
-            // pointer), within safe limits, and it moves to the left side in right-to-left languages.
+            // pointer) within safe limits. It follows AppKit's layout direction, so it moves to the
+            // left when the app runs in Arabic.
             .inspector(isPresented: $showInspector) {
                 InspectorView(model: model, tab: inspectorTab)
                     .layoutProbe("inspector")
@@ -309,22 +310,20 @@ struct InspectorView: View {
                 .layoutProbe("inspectorTabs")
                 .padding(12)
 
-            // The content takes exactly the column's width (whatever the person dragged it to), so
-            // no row can push the inspector wider or spill over the window's edge.
-            GeometryReader { proxy in
-                ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        switch tab {
-                        case .style: StyleInspector(model: model)
-                        case .background: BackgroundInspector(model: model)
-                        case .export: ExportInspector(model: model)
-                        }
+            // The content takes the scroll view's width (the column minus an always-shown scroll bar),
+            // whatever the person dragged the column to; clipping keeps any row inside it.
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 12) {
+                    switch tab {
+                    case .style: StyleInspector(model: model)
+                    case .background: BackgroundInspector(model: model)
+                    case .export: ExportInspector(model: model)
                     }
-                    .padding(.bottom, 16)
-                    .frame(width: max(proxy.size.width - 24, 0), alignment: .leading)
-                    .layoutProbe("inspectorContent")
-                    .padding(.horizontal, 12)
                 }
+                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutProbe("inspectorContent")
+                .padding(.horizontal, 12)
             }
         }
         .clipped()
