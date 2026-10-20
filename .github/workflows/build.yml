@@ -20,6 +20,25 @@ jobs:
       - name: Build EasyShoot.app (universal)
         run: UNIVERSAL=1 ./scripts/build-app.sh
 
+      - name: Smoke test (launch, respond, screenshot)
+        run: |
+          set -x
+          open build/EasyShoot.app
+          sleep 10
+          pgrep -lx EasyShoot
+          # A hung app does not answer Apple Events; give it 20 s.
+          perl -e 'alarm 20; exec @ARGV' osascript -e 'tell application id "com.haythamasalama.easyshoot" to get name'
+          screencapture -x build/smoke.png || true
+          log show --last 1m --predicate 'process == "EasyShoot"' --style compact | tail -40 || true
+          pkill -x EasyShoot || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshot
+          path: build/smoke.png
+          if-no-files-found: ignore
+
       - name: Zip app
         run: cd build && ditto -c -k --keepParent EasyShoot.app EasyShoot.zip
 
