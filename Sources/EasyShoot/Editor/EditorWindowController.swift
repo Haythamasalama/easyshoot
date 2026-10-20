@@ -24,7 +24,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window.tabbingMode = .disallowed
         super.init(window: window)
 
-        window.contentView = NSHostingView(rootView: EditorView(model: model, presets: PresetStore.shared))
+        window.contentView = NSHostingView(rootView: EditorView(model: model, presets: PresetStore.shared).tint(Brand.signal))
         window.delegate = self
         window.center()
         model.window = window

@@ -171,7 +171,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
             }
         }
         let r = Renderer.bounds(of: a, scale: s).insetBy(dx: -4 / z, dy: -4 / z)
-        ctx.setStrokeColor(NSColor.controlAccentColor.cgColor)
+        ctx.setStrokeColor(Brand.signalNS.cgColor)
         ctx.setLineWidth(lineWidth)
         ctx.setLineDash(phase: 0, lengths: [4 / z, 3 / z])
         ctx.stroke(r)
@@ -183,7 +183,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
         let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
         ctx.setFillColor(CGColor(gray: 1, alpha: 1))
         ctx.fillEllipse(in: rect)
-        ctx.setStrokeColor(NSColor.controlAccentColor.cgColor)
+        ctx.setStrokeColor(Brand.signalNS.cgColor)
         ctx.setLineWidth(1.5 / z)
         ctx.setLineDash(phase: 0, lengths: [])
         ctx.strokeEllipse(in: rect)

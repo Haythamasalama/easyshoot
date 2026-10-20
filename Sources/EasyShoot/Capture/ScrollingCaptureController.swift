@@ -212,7 +212,7 @@ private final class RegionBorderView: NSView {
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 4, yRadius: 4)
         path.lineWidth = 2
         path.setLineDash([8, 5], count: 2, phase: 0)
-        NSColor.controlAccentColor.setStroke()
+        Brand.signalNS.setStroke()
         path.stroke()
     }
 }

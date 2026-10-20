@@ -11,9 +11,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenu.install()
         setupStatusItem()
         registerHotKeys()
-        if !Permissions.hasScreenRecording {
-            _ = CGRequestScreenCaptureAccess()
+        if WelcomeWindowController.shared.shouldShowAtLaunch {
+            WelcomeWindowController.shared.show()
         }
+    }
+
+    /// Opening the app again from Finder or Launchpad shows the welcome window, so it never looks like nothing happened.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { WelcomeWindowController.shared.show() }
+        return true
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
@@ -27,8 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "EasyShoot")
-            button.image?.isTemplate = true
+            button.image = Brand.menuBarImage()
         }
 
         let menu = NSMenu()
@@ -40,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(makeItem("Open Image…", #selector(openImage(_:))))
         addItem(to: menu, Shortcut.openLast, #selector(annotateClipboard(_:)))
         menu.addItem(.separator())
+        menu.addItem(makeItem("Welcome & Permissions…", #selector(showWelcome(_:))))
         menu.addItem(makeItem("Settings…", #selector(openSettings(_:)), key: ","))
         menu.addItem(makeItem("Quit EasyShoot", #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
         item.menu = menu
@@ -77,13 +83,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openImage(_ sender: Any?) { coordinator.openImageFile() }
     @objc func annotateClipboard(_ sender: Any?) { coordinator.annotateClipboard() }
 
+    @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.shared.show() }
+
     @objc func openSettings(_ sender: Any?) {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 560, height: 460),
                                   styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.title = "EasyShoot Settings"
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared))
+            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared).tint(Brand.signal))
             window.center()
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
                 MainActor.assumeIsolated { AppActivation.windowClosed() }

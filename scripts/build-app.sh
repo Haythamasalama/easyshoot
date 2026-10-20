@@ -19,9 +19,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/EasyShoot" "$APP/Contents/MacOS/EasyShoot"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-if [[ -f Resources/AppIcon.icns ]]; then
-  cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-  /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string AppIcon" "$APP/Contents/Info.plist" || true
+if [[ -d Resources/AppIcon.iconset ]]; then
+  iconutil -c icns Resources/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 fi
 
 codesign --force --deep --sign "${SIGN_IDENTITY:--}" "$APP"

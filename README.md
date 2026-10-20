@@ -54,6 +54,14 @@ xattr -dr com.apple.quarantine EasyShoot.app
 
 You can also open `Package.swift` in Xcode to edit the code. Run the app through `build-app.sh` so it runs as a real `.app` bundle, which macOS needs to grant permissions.
 
+## First launch
+
+EasyShoot is a menu bar app with no Dock window. On first launch, a **Welcome** window walks you through Screen Recording permission and the shortcuts. You can reopen it any time by opening the app again or choosing **Welcome & Permissions…** from the menu bar icon.
+
+If macOS says *"EasyShoot.app" Not Opened*, the build isn't notarized by Apple. Move the app to **Applications**, then either:
+- go to **System Settings → Privacy & Security** and click **Open Anyway**, or
+- run `xattr -dr com.apple.quarantine /Applications/EasyShoot.app`.
+
 ## Permissions
 
 | Permission | Why |
