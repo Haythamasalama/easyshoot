@@ -686,13 +686,6 @@ struct EditorBottomBar: View {
 
             Spacer()
 
-            Image(systemName: "hand.draw")
-                .font(.system(size: 14))
-                .frame(width: 30, height: 26)
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.primary.opacity(0.07)))
-                .onDrag { model.dragItemProvider() }
-                .help(L("Drag the final image into any app"))
-
             Button { model.copyToClipboard() } label: { Label(L("Copy"), systemImage: "doc.on.doc") }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
                 .secondaryButtonStyle()

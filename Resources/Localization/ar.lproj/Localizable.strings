@@ -69,7 +69,6 @@
 "Download" = "تنزيل";
 "Downloading “%@” failed. Check your internet connection." = "فشل تنزيل «%@». تحقّق من اتصالك بالإنترنت.";
 "Drag over the area you want to scroll · Esc to cancel" = "اسحب فوق المنطقة التي تريد تمريرها · Esc للإلغاء";
-"Drag the final image into any app" = "اسحب الصورة النهائية إلى أي تطبيق";
 "Easy" = "Easy";
 "EasyShoot lives in your menu bar" = "EasyShoot موجود في شريط القوائم";
 "EasyShoot needs Screen Recording permission to take screenshots.\n\nOpen System Settings → Privacy & Security → Screen & System Audio Recording, enable EasyShoot, then quit and reopen EasyShoot." = "يحتاج EasyShoot إلى إذن تسجيل الشاشة لالتقاط الصور.\n\nافتح إعدادات النظام ← الخصوصية والأمان ← تسجيل الشاشة وصوت النظام، وفعّل EasyShoot، ثم أغلقه وافتحه من جديد.";
