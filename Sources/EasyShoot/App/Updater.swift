@@ -51,8 +51,9 @@ final class Updater {
         }
     }
 
-    private func checkIfDue() {
-        guard automaticChecks else { return }
+    func checkIfDue() {
+        // Never cover the first-run window; it checks again when it closes.
+        guard automaticChecks, !WelcomeWindowController.shared.isShowing else { return }
         let last = defaults.double(forKey: "lastUpdateCheck")
         guard Date().timeIntervalSince1970 - last >= Self.checkInterval else { return }
         check(userInitiated: false)

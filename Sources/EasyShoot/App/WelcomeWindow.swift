@@ -18,17 +18,21 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
         return defaults.object(forKey: Self.showAtLaunchKey) as? Bool ?? false
     }
 
+    var isShowing: Bool { window?.isVisible == true }
+
     func show() {
         UserDefaults.standard.set(true, forKey: Self.seenKey)
         if window == nil {
-            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 520, height: 640),
+            // The window takes the height its content needs, so longer translations never get cut off.
+            let hosting = NSHostingView(rootView: WelcomeView(close: { [weak self] in self?.close() }))
+            let window = NSWindow(contentRect: CGRect(origin: .zero, size: hosting.fittingSize),
                                   styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.delegate = self
-            window.contentView = NSHostingView(rootView: WelcomeView(close: { [weak self] in self?.close() }))
+            window.contentView = hosting
             window.center()
             self.window = window
             AppActivation.windowOpened()
@@ -45,6 +49,11 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         AppActivation.windowClosed()
+        // An update offer waits until the first-run window is out of the way.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            Updater.shared.checkIfDue()
+        }
     }
 
     static func setShowAtLaunch(_ value: Bool) {
@@ -76,9 +85,10 @@ struct WelcomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 10) {
-                Image(nsImage: NSApp.applicationIconImage)
+                Image(nsImage: Brand.appIcon)
                     .resizable()
                     .frame(width: 84, height: 84)
+                    .accessibilityHidden(true)
                 Text(L("Welcome to EasyShoot"))
                     .font(.system(size: 26, weight: .bold))
                 Text(L("Capture. Mark up. Share."))
@@ -95,9 +105,10 @@ struct WelcomeView: View {
                             .foregroundStyle(Brand.signal)
                             .frame(width: 34, height: 34)
                             .background(RoundedRectangle(cornerRadius: 8).fill(Brand.signal.opacity(0.12)))
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(L("EasyShoot lives in your menu bar")).font(.headline)
-                            Text(L("There’s no main window. Look for this icon at the top-right of your screen. On a MacBook with a notch it can be hidden, so the keyboard shortcuts below always work."))
+                            Text(L("Click this icon at the top of your screen to take a screenshot. If the notch hides it, use the shortcuts below."))
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -108,7 +119,8 @@ struct WelcomeView: View {
                 card { permissionRow }
 
                 card {
-                    VStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L("Shortcuts")).font(.headline)
                         ForEach([HotKeyAction.captureArea, .captureWindow, .captureFullscreen, .scrollingCapture]) { action in
                             shortcutRow(action.title, ShortcutStore.shared.combo(for: action)?.displayString ?? "–")
                         }
@@ -116,8 +128,6 @@ struct WelcomeView: View {
                 }
             }
             .padding(.horizontal, 28)
-
-            Spacer(minLength: 16)
 
             HStack {
                 Toggle(L("Show at launch"), isOn: $showAtLaunch)
@@ -141,9 +151,11 @@ struct WelcomeView: View {
                 .disabled(!hasScreenRecording)
             }
             .padding(.horizontal, 28)
+            .padding(.top, 24)
             .padding(.bottom, 24)
         }
-        .frame(width: 520, height: 640)
+        .frame(width: 520)
+        .fixedSize(horizontal: false, vertical: true)
         .onReceive(timer) { _ in hasScreenRecording = Permissions.hasScreenRecording }
         .onAppear {
             hasScreenRecording = Permissions.hasScreenRecording
@@ -158,6 +170,7 @@ struct WelcomeView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(hasScreenRecording ? Color.green : Brand.signal)
                 .frame(width: 34)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(L("Screen Recording permission")).font(.headline)
                 Text(hasScreenRecording

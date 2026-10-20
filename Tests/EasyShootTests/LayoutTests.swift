@@ -159,6 +159,8 @@ final class LayoutTests: XCTestCase {
 
     /// Renders every window as it opens on each screen, and the editor maximized.
     func testWindowsOnEveryScreen() {
+        let welcome = NSHostingView(rootView: WelcomeView(close: {})).fittingSize
+        XCTAssertEqual(welcome.width, 520, accuracy: tolerance, "Welcome window width changed")
         for screen in Self.screens {
             let visible = CGRect(origin: .zero, size: screen.visible)
             // A typical full-window capture on a Retina Mac.
@@ -171,12 +173,12 @@ final class LayoutTests: XCTestCase {
                 }
                 assertEditorLayout(probe, size: size, inspectorShown: true, direction: .leftToRight, name)
             }
-            XCTAssertLessThanOrEqual(640, screen.visible.height, "\(screen.name): Welcome window doesn't fit")
+            XCTAssertLessThanOrEqual(welcome.height, screen.visible.height, "\(screen.name): Welcome window doesn't fit")
         }
         _ = render(name: "screen-any-settings-general", size: CGSize(width: 760, height: 540)) {
             SettingsView(settings: .shared, presets: .shared, shortcuts: .shared)
         }
-        _ = render(name: "screen-any-welcome", size: CGSize(width: 520, height: 640)) {
+        _ = render(name: "screen-any-welcome", size: welcome) {
             WelcomeView(close: {})
         }
     }

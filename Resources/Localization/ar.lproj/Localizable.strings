@@ -192,7 +192,7 @@
 "Text & Counter" = "النص والعدّاد";
 "Text size" = "حجم النص";
 "The default preset is applied to every new screenshot: background, annotation style and export format. Without a default, each screenshot starts with your last settings. Create presets from the editor’s Presets menu." = "يُطبَّق الإعداد الافتراضي على كل لقطة جديدة: الخلفية ونمط التعليقات وصيغة التصدير. بدون إعداد افتراضي، تبدأ كل لقطة بآخر إعداداتك. أنشئ إعدادات من قائمة «الإعدادات المحفوظة» في المحرر.";
-"There’s no main window. Look for this icon at the top-right of your screen. On a MacBook with a notch it can be hidden, so the keyboard shortcuts below always work." = "لا توجد نافذة رئيسية. ابحث عن هذه الأيقونة أعلى يمين الشاشة. على ماك بوك ذي النتوء قد تكون مخفية، لذلك تعمل الاختصارات أدناه دائماً.";
+"Click this icon at the top of your screen to take a screenshot. If the notch hides it, use the shortcuts below." = "انقر هذه الأيقونة أعلى الشاشة لالتقاط صورة. إذا أخفاها النتوء، استخدم الاختصارات أدناه.";
 "Thickness" = "السُمك";
 "Tools" = "الأدوات";
 "Transparent background: keeps padding and shadow. Export as PNG to keep transparency." = "خلفية شفافة: تُبقي الهوامش والظل. صدّر بصيغة PNG للحفاظ على الشفافية.";

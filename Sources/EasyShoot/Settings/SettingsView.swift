@@ -373,9 +373,10 @@ private struct AboutSettings: View {
     var body: some View {
         VStack(spacing: 14) {
             Spacer()
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: Brand.appIcon)
                 .resizable()
                 .frame(width: 96, height: 96)
+                .accessibilityHidden(true)
             HStack(spacing: 0) {
                 Text("Easy").foregroundStyle(.primary)
                 Text("Shoot").foregroundStyle(Brand.signal)
