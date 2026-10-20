@@ -229,3 +229,5 @@
 "Updates" = "Actualizaciones";
 "You have version %@. The update downloads, replaces the app and reopens it." = "Tienes la versión %@. La actualización se descarga, reemplaza la app y la vuelve a abrir.";
 "You're up to date" = "Estás al día";
+"Hide Inspector" = "Ocultar inspector";
+"Show Inspector" = "Mostrar inspector";

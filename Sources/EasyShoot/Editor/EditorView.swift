@@ -3,13 +3,18 @@ import SwiftUI
 struct EditorView: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var presets: PresetStore
+    /// Hidden on small screens to give the canvas the whole window.
+    @AppStorage("showInspector") private var showInspector = true
+
+    /// The inspector always has this width; its content adapts to it, never the other way round.
+    static let inspectorWidth: CGFloat = 290
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 ZStack(alignment: .top) {
                     CanvasRepresentable(model: model)
-                        .frame(minWidth: 480, minHeight: 360)
+                        .frame(minWidth: 400, minHeight: 320)
                     VStack(spacing: 8) {
                         ViewThatFits(in: .horizontal) {
                             FloatingToolbar(model: model)
@@ -18,7 +23,10 @@ struct EditorView: View {
                         if model.isCropping {
                             CropBar(model: model)
                         } else if model.showsTextBar {
-                            TextBar(model: model)
+                            ViewThatFits(in: .horizontal) {
+                                TextBar(model: model)
+                                TextBar(model: model, compact: true)
+                            }
                         }
                     }
                     .padding(.top, 12)
@@ -26,13 +34,18 @@ struct EditorView: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.showsTextBar)
                     .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
                 }
-                Divider()
-                InspectorView(model: model)
-                    .frame(width: 290)
+                if showInspector {
+                    Divider()
+                    InspectorView(model: model)
+                        .frame(width: Self.inspectorWidth)
+                        .clipped()
+                        .transition(.move(edge: .trailing))
+                }
             }
             Divider()
-            EditorBottomBar(model: model, presets: presets)
+            EditorBottomBar(model: model, presets: presets, showInspector: $showInspector)
         }
+        .animation(.easeInOut(duration: 0.2), value: showInspector)
     }
 }
 
@@ -165,6 +178,8 @@ struct ColorDots: View {
 /// Appears for the text tool or a selected text: font, size and background, one click away.
 struct TextBar: View {
     @ObservedObject var model: EditorModel
+    /// Drops the direction picker and narrows the font menu, for narrow windows.
+    var compact = false
 
     private var style: Binding<AnnotationStyle> {
         Binding(get: { model.activeStyle }, set: { model.setActiveStyle($0) })
@@ -173,7 +188,7 @@ struct TextBar: View {
     var body: some View {
         HStack(spacing: 10) {
             FontPickerButton(fontName: style.fontName)
-                .frame(width: 150)
+                .frame(width: compact ? 110 : 150)
 
             HStack(spacing: 0) {
                 Button { model.adjustFontSize(by: -2) } label: {
@@ -201,14 +216,16 @@ struct TextBar: View {
             .labelsHidden()
             .frame(width: 110)
 
-            Picker("", selection: style.textDirection) {
-                Text(L("Auto")).tag(TextDirection.auto)
-                Image(systemName: "text.alignleft").help(L("Left to right")).tag(TextDirection.ltr)
-                Image(systemName: "text.alignright").help(L("Right to left")).tag(TextDirection.rtl)
+            if !compact {
+                Picker("", selection: style.textDirection) {
+                    Text(L("Auto")).tag(TextDirection.auto)
+                    Image(systemName: "text.alignleft").help(L("Left to right")).tag(TextDirection.ltr)
+                    Image(systemName: "text.alignright").help(L("Right to left")).tag(TextDirection.rtl)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 120)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -275,9 +292,9 @@ struct InspectorView: View {
                     case .export: ExportInspector(model: model)
                     }
                 }
-                .padding(.horizontal, 12)
                 .padding(.bottom, 16)
-                .containerRelativeFrame(.horizontal, alignment: .leading)
+                .frame(width: EditorView.inspectorWidth - 24, alignment: .leading)
+                .padding(.horizontal, 12)
             }
         }
         .background(.background.secondary)
@@ -658,6 +675,7 @@ struct ExportInspector: View {
 struct EditorBottomBar: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var presets: PresetStore
+    @Binding var showInspector: Bool
     @State private var showingSavePreset = false
     @State private var presetName = ""
 
@@ -681,10 +699,20 @@ struct EditorBottomBar: View {
                 Label(message, systemImage: "checkmark.circle.fill")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
             }
 
-            Spacer()
+            Spacer(minLength: 8)
+
+            Button { showInspector.toggle() } label: {
+                Image(systemName: "sidebar.trailing")
+                    .frame(width: 22, height: 18)
+            }
+            .secondaryButtonStyle()
+            .keyboardShortcut("i", modifiers: [.command, .option])
+            .help((showInspector ? L("Hide Inspector") : L("Show Inspector")) + "  ⌥⌘I")
+            .accessibilityLabel(showInspector ? L("Hide Inspector") : L("Show Inspector"))
 
             Button { model.copyToClipboard() } label: { Label(L("Copy"), systemImage: "doc.on.doc") }
                 .keyboardShortcut("c", modifiers: [.command, .shift])

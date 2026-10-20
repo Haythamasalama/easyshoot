@@ -229,3 +229,5 @@
 "Updates" = "التحديثات";
 "You have version %@. The update downloads, replaces the app and reopens it." = "لديك الإصدار %@. سيُنزَّل التحديث ويستبدل التطبيق ثم يعيد فتحه.";
 "You're up to date" = "لديك أحدث إصدار";
+"Hide Inspector" = "إخفاء لوحة الخصائص";
+"Show Inspector" = "إظهار لوحة الخصائص";
