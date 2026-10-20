@@ -209,3 +209,23 @@
 "Window" = "Window";
 "Zoom" = "Zoom";
 "px" = "px";
+
+/* Updates */
+"Check Now" = "Check Now";
+"Check for Updates…" = "Check for Updates…";
+"Check for updates automatically" = "Check for updates automatically";
+"Couldn't check for updates" = "Couldn't check for updates";
+"Couldn't unpack the update." = "Couldn't unpack the update.";
+"EasyShoot %@ is available" = "EasyShoot %@ is available";
+"EasyShoot %@ is the newest version." = "EasyShoot %@ is the newest version.";
+"EasyShoot can't write to %@. Move it to your Applications folder and try again." = "EasyShoot can't write to %@. Move it to your Applications folder and try again.";
+"Later" = "Later";
+"OK" = "OK";
+"Open Releases Page" = "Open Releases Page";
+"Skip This Version" = "Skip This Version";
+"The download didn't contain EasyShoot." = "The download didn't contain EasyShoot.";
+"The update couldn't be installed" = "The update couldn't be installed";
+"Update Now" = "Update Now";
+"Updates" = "Updates";
+"You have version %@. The update downloads, replaces the app and reopens it." = "You have version %@. The update downloads, replaces the app and reopens it.";
+"You're up to date" = "You're up to date";

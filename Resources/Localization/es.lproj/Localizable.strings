@@ -209,3 +209,23 @@
 "Window" = "Ventana";
 "Zoom" = "Zoom";
 "px" = "px";
+
+/* Updates */
+"Check Now" = "Comprobar ahora";
+"Check for Updates…" = "Buscar actualizaciones…";
+"Check for updates automatically" = "Buscar actualizaciones automáticamente";
+"Couldn't check for updates" = "No se pudieron buscar actualizaciones";
+"Couldn't unpack the update." = "No se pudo descomprimir la actualización.";
+"EasyShoot %@ is available" = "EasyShoot %@ está disponible";
+"EasyShoot %@ is the newest version." = "EasyShoot %@ es la versión más reciente.";
+"EasyShoot can't write to %@. Move it to your Applications folder and try again." = "EasyShoot no puede escribir en %@. Muévelo a Aplicaciones y vuelve a intentarlo.";
+"Later" = "Más tarde";
+"OK" = "Aceptar";
+"Open Releases Page" = "Abrir la página de versiones";
+"Skip This Version" = "Omitir esta versión";
+"The download didn't contain EasyShoot." = "La descarga no contenía EasyShoot.";
+"The update couldn't be installed" = "No se pudo instalar la actualización";
+"Update Now" = "Actualizar ahora";
+"Updates" = "Actualizaciones";
+"You have version %@. The update downloads, replaces the app and reopens it." = "Tienes la versión %@. La actualización se descarga, reemplaza la app y la vuelve a abrir.";
+"You're up to date" = "Estás al día";

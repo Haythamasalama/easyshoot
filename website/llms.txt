@@ -18,7 +18,8 @@
 - Crop and resize: free or fixed ratios (1:1, 4:3, 16:9), resize by percent or to an exact width.
 - Presets: save a style and make it the default; without a default, each screenshot starts with the last settings.
 - Export: PNG, JPEG, HEIC or TIFF; copy with Shift-Command-C, save with Command-S.
-- Privacy: no account, no cloud, no analytics. The app only goes online to download a Google font you pick.
+- Updates: checks GitHub Releases once a day (can be turned off) and installs a new version in place with one click.
+- Privacy: no account, no cloud, no analytics. The app only goes online to check for updates and to download a Google font you pick.
 
 ## Default shortcuts
 
@@ -30,9 +31,11 @@
 
 ## Install
 
-1. Download EasyShoot.zip from the latest release, unzip it and move EasyShoot.app to Applications.
-2. The app is not notarized yet. Open it once and click Open Anyway in System Settings > Privacy & Security, or run: `xattr -cr /Applications/EasyShoot.app`
-3. Click Allow in the Welcome window to grant Screen Recording permission. EasyShoot lives in the menu bar.
+1. Run in Terminal: `curl -fsSL https://easyshoot.haythamasalama.me/install.sh | bash`. It downloads the latest release into Applications and opens it, with no Gatekeeper prompt.
+2. Click Allow in the Welcome window to grant Screen Recording permission. EasyShoot lives in the menu bar.
+3. Updates are installed from inside the app (Settings > General > Updates, or the menu bar's Check for Updates).
+
+Manual alternative: download EasyShoot.zip from the latest release and move EasyShoot.app to Applications. The app is not notarized yet, so a browser download needs Open Anyway in System Settings > Privacy & Security once, or `xattr -cr /Applications/EasyShoot.app`.
 
 ## Build from source
 

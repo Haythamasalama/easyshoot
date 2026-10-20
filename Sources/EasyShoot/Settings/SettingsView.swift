@@ -80,6 +80,7 @@ struct SettingsView: View {
 
 private struct GeneralSettings: View {
     @ObservedObject var settings: AppSettings
+    @State private var autoUpdates = Updater.shared.automaticChecks
 
     var body: some View {
         Form {
@@ -112,6 +113,13 @@ private struct GeneralSettings: View {
             } footer: {
                 Text(L("Screenshots are only stored on this Mac. EasyShoot never uploads anything."))
                     .foregroundStyle(.secondary)
+            }
+            Section(L("Updates")) {
+                Toggle(L("Check for updates automatically"), isOn: $autoUpdates)
+                    .onChange(of: autoUpdates) { _, on in Updater.shared.automaticChecks = on }
+                LabeledContent(L("Version %@", Updater.currentVersion)) {
+                    Button(L("Check Now")) { Updater.shared.check(userInitiated: true) }
+                }
             }
         }
         .formStyle(.grouped)
@@ -370,6 +378,8 @@ private struct AboutSettings: View {
                 .font(.title3)
             Text(L("Screenshots stay on your Mac: no account, no cloud, no tracking."))
                 .foregroundStyle(.secondary)
+            Button(L("Check for Updates…")) { Updater.shared.check(userInitiated: true) }
+                .padding(.top, 6)
             Spacer()
         }
         .frame(maxWidth: .infinity)

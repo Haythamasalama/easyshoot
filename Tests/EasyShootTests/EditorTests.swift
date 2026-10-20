@@ -94,3 +94,14 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(withPreset.tool, .arrow)
     }
 }
+
+final class UpdaterTests: XCTestCase {
+    func testVersionComparison() {
+        XCTAssertTrue(Updater.isVersion("1.0.3", newerThan: "1.0.2"))
+        XCTAssertTrue(Updater.isVersion("1.10.0", newerThan: "1.9.9"))
+        XCTAssertTrue(Updater.isVersion("2", newerThan: "1.9"))
+        XCTAssertFalse(Updater.isVersion("1.0.2", newerThan: "1.0.2"))
+        XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1.0.0"))
+        XCTAssertFalse(Updater.isVersion("1.0.1", newerThan: "1.0.2"))
+    }
+}
