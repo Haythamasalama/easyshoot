@@ -7,7 +7,7 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
 }
 
 /// Borderless panel that can still become key (needed for buttons and text input).
-final class FloatingPanel: NSPanel {
+class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
