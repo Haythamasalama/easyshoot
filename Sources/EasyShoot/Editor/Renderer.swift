@@ -61,7 +61,7 @@ enum Renderer {
     // MARK: Full render
 
     static func renderImage(_ doc: EditorDocument, factor: CGFloat = 1, pixelated: CGImage?, opaque: Bool) -> CGImage? {
-        let layout = layout(for: doc)
+        let layout = Self.layout(for: doc)
         let w = max(1, Int((layout.canvasSize.width * factor).rounded()))
         let h = max(1, Int((layout.canvasSize.height * factor).rounded()))
         var space = CGColorSpace(name: CGColorSpace.sRGB)!
