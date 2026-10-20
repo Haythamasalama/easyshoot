@@ -1,10 +1,19 @@
 name: Release
 
-# Push a tag like v1.0.0 to publish EasyShoot.zip on the Releases page
-# (the website's "Download for Mac" button points there).
+# Push a tag like v1.0.0, or run this workflow from the Actions tab with a
+# version, to publish EasyShoot.zip on the Releases page (the website's
+# "Download for Mac" button points there).
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, for example 1.0.0"
+        required: true
+
+env:
+  TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
 
 permissions:
   contents: write
@@ -18,7 +27,7 @@ jobs:
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
       - name: Set version from tag
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Resources/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" Resources/Info.plist
       - run: swift test
@@ -26,5 +35,7 @@ jobs:
       - run: cd build && ditto -c -k --keepParent EasyShoot.app EasyShoot.zip
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           files: build/EasyShoot.zip
           generate_release_notes: true
