@@ -175,7 +175,9 @@ final class ScrollingCaptureController: ObservableObject {
     }
 
     private func showPanel() {
-        let size = CGSize(width: 360, height: 130)
+        // The panel is as tall as its text needs; translations can run to three lines.
+        let content = FirstMouseHostingView(rootView: ScrollingPanelView(controller: self))
+        let size = CGSize(width: 360, height: max(130, content.fittingSize.height))
         let visible = screen.visibleFrame
         var origin = CGPoint(x: rect.midX - size.width / 2, y: rect.minY - size.height - 14)
         if origin.y < visible.minY {
@@ -194,7 +196,7 @@ final class ScrollingCaptureController: ObservableObject {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = FirstMouseHostingView(rootView: ScrollingPanelView(controller: self))
+        panel.contentView = content
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -250,7 +252,8 @@ struct ScrollingPanelView: View {
             }
         }
         .padding(14)
-        .frame(width: 360, height: 130)
+        .frame(width: 360)
+        .fixedSize(horizontal: false, vertical: true)
         .glassSurface(cornerRadius: 16)
     }
 }

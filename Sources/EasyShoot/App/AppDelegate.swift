@@ -122,12 +122,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openSettings(_ sender: Any?) {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 760, height: 540),
-                                  styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
             window.title = L("Settings")
             window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
+            window.minSize = CGSize(width: 720, height: 500)
             window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared, shortcuts: .shared))
             window.center()
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in

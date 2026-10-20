@@ -126,17 +126,74 @@ final class LayoutTests: XCTestCase {
         }
     }
 
+    // MARK: Real screens, 13" to 24"
+
+    /// Default "looks like" resolutions, minus the menu bar.
+    private static let screens: [(name: String, visible: CGSize)] = [
+        ("13in-MacBook-Air-M1-1440x900", CGSize(width: 1440, height: 875)),
+        ("13in-MacBook-Air-1470x956", CGSize(width: 1470, height: 918)),
+        ("14in-MacBook-Pro-1512x982", CGSize(width: 1512, height: 944)),
+        ("15in-MacBook-Air-1710x1112", CGSize(width: 1710, height: 1074)),
+        ("16in-MacBook-Pro-1728x1117", CGSize(width: 1728, height: 1079)),
+        ("24in-iMac-2240x1260", CGSize(width: 2240, height: 1235)),
+    ]
+
+    func testEditorOpensAtAGoodSizeOnEveryScreen() {
+        for screen in Self.screens {
+            let visible = CGRect(origin: .zero, size: screen.visible)
+            for image in [CGSize(width: 400, height: 300), CGSize(width: 1440, height: 900), CGSize(width: 3000, height: 2000)] {
+                let size = EditorWindowController.initialContentSize(imagePoints: image, visibleFrame: visible)
+                XCTAssertGreaterThanOrEqual(size.width, EditorWindowController.minimumSize.width, screen.name)
+                XCTAssertGreaterThanOrEqual(size.height, EditorWindowController.minimumSize.height, screen.name)
+                XCTAssertLessThanOrEqual(size.width, screen.visible.width * 0.9 + 0.5, "\(screen.name): wider than the screen allows")
+                XCTAssertLessThanOrEqual(size.height, screen.visible.height * 0.9 + 0.5, "\(screen.name): taller than the screen allows")
+            }
+        }
+    }
+
+    /// Renders every window as it opens on each screen, and the editor maximized.
+    func testWindowsOnEveryScreen() {
+        for screen in Self.screens {
+            let visible = CGRect(origin: .zero, size: screen.visible)
+            // A typical full-window capture on a Retina Mac.
+            let imagePoints = CGSize(width: screen.visible.width * 0.7, height: screen.visible.height * 0.7)
+            let opening = EditorWindowController.initialContentSize(imagePoints: imagePoints, visibleFrame: visible)
+            for (label, size) in [("editor", opening), ("editor-maximized", screen.visible)] {
+                let name = "screen-\(screen.name)-\(label)"
+                let probe = render(name: name, size: size) {
+                    EditorView(model: self.makeModel(points: imagePoints), presets: PresetStore.shared)
+                }
+                assertEditorLayout(probe, size: size, inspectorShown: true, direction: .leftToRight, name)
+            }
+            XCTAssertLessThanOrEqual(640, screen.visible.height, "\(screen.name): Welcome window doesn't fit")
+        }
+        _ = render(name: "screen-any-settings-general", size: CGSize(width: 760, height: 540)) {
+            SettingsView(settings: .shared, presets: .shared, shortcuts: .shared)
+        }
+        _ = render(name: "screen-any-welcome", size: CGSize(width: 520, height: 640)) {
+            WelcomeView(close: {})
+        }
+    }
+
     // MARK: Hosting
 
-    private func makeModel() -> EditorModel {
-        let width = 1200, height = 800
+    private func makeModel(points: CGSize = CGSize(width: 600, height: 400)) -> EditorModel {
+        let width = Int(points.width * 2), height = Int(points.height * 2)
         let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpace(name: CGColorSpace.sRGB)!,
                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         ctx.setFillColor(CGColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1))
         ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
         ctx.setFillColor(CGColor(red: 0.35, green: 0.3, blue: 0.9, alpha: 1))
-        ctx.fill(CGRect(x: 80, y: 80, width: 400, height: 240))
+        // A sidebar, a header and a few cards, so the screenshots look like an app.
+        ctx.setFillColor(CGColor(red: 0.9, green: 0.9, blue: 0.93, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width / 5, height: height))
+        ctx.setFillColor(CGColor(red: 0.35, green: 0.3, blue: 0.9, alpha: 1))
+        ctx.fill(CGRect(x: width / 5 + 60, y: height - 140, width: width / 3, height: 60))
+        for i in 0..<3 {
+            ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+            ctx.fill(CGRect(x: width / 5 + 60 + i * (width / 4), y: height / 3, width: width / 5, height: height / 3))
+        }
         let model = EditorModel(result: CaptureResult(image: ctx.makeImage()!, scale: 2), preset: nil)
         model.doc.background.enabled = true
         return model
@@ -153,6 +210,8 @@ final class LayoutTests: XCTestCase {
         let hosting = NSHostingView(rootView: root)
         hosting.frame = CGRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        // ARC owns the window; letting AppKit also release it on close crashes the test run.
+        window.isReleasedWhenClosed = false
         window.contentView = hosting
         window.orderFrontRegardless()
         window.layoutIfNeeded()
