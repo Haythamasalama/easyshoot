@@ -6,12 +6,16 @@ enum Brand {
     /// Signal orange: the one brand color, used for accents, selection and focus.
     static let signal = Color(red: 1, green: 0x5A / 255, blue: 0x1F / 255)
     static let signalNS = NSColor(srgbRed: 1, green: 0x5A / 255, blue: 0x1F / 255, alpha: 1)
-    static let ink = Color(red: 0x14 / 255, green: 0x14 / 255, blue: 0x16 / 255)
+    /// Graphite: the icon body and dark surfaces.
+    static let graphite = Color(red: 0x0F / 255, green: 0x0F / 255, blue: 0x12 / 255)
+    static let graphiteLight = Color(red: 0x2E / 255, green: 0x2E / 255, blue: 0x35 / 255)
+    /// Paper: light text on graphite.
+    static let paper = Color(red: 0xF4 / 255, green: 0xF4 / 255, blue: 0xF6 / 255)
 
     static let tagline = "Capture. Mark up. Share."
     static let taglineArabic = "التقط، وضّح، وشارك."
 
-    /// Crop corners with a shutter dot, as a template image (adapts to light/dark menu bars).
+    /// Selection corners around a crosshair (Branding/MenuBarMark.svg), as a template image (adapts to light/dark menu bars).
     static func menuBarImage(size: CGFloat = 18) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
             let s = rect.width / 1024
@@ -31,10 +35,12 @@ enum Brand {
             path.lineJoinStyle = .round
             NSColor.black.setStroke()
             path.stroke()
-            let dotRadius: CGFloat = 175 * s
-            NSColor.black.setFill()
-            NSBezierPath(ovalIn: NSRect(x: 512 * s - dotRadius, y: 512 * s - dotRadius,
-                                        width: dotRadius * 2, height: dotRadius * 2)).fill()
+            let cross = NSBezierPath()
+            cross.move(to: p(512, 370)); cross.line(to: p(512, 654))
+            cross.move(to: p(370, 512)); cross.line(to: p(654, 512))
+            cross.lineWidth = 84 * s
+            cross.lineCapStyle = .round
+            cross.stroke()
             return true
         }
         image.isTemplate = true

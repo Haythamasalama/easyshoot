@@ -1,5 +1,7 @@
 # EasyShoot
 
+![EasyShoot](Branding/brand-sheet.png)
+
 A native macOS screenshot app inspired by CleanShot X. You can capture, annotate, frame and export screenshots. **Everything stays on your Mac**: there's no cloud, no account and no uploads.
 
 ## Features
