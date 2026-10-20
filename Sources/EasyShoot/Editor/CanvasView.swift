@@ -26,12 +26,15 @@ final class CanvasView: NSView, NSTextViewDelegate {
         case creating(Annotation)
         case moving(id: UUID, last: CGPoint, didMove: Bool)
         case handle(id: UUID, isStart: Bool)
+        /// Resizing text or a counter by dragging its corner: scales the font size.
+        case scale(id: UUID, origin: CGPoint, startDistance: CGFloat, startFontSize: CGFloat)
         case cropNew(origin: CGPoint)
         case cropMove(last: CGPoint)
         case cropResize(anchor: CGPoint)
     }
 
     private var drag: Drag = .none
+    private var editOnMouseUpID: UUID?
 
     // Text editing state
     private var textView: NSTextView?
@@ -175,6 +178,9 @@ final class CanvasView: NSView, NSTextViewDelegate {
         ctx.setLineWidth(lineWidth)
         ctx.setLineDash(phase: 0, lengths: [4 / z, 3 / z])
         ctx.stroke(r)
+        if let handle = scaleHandle(for: a) {
+            drawHandle(at: handle, ctx: ctx, zoom: z)
+        }
         ctx.restoreGState()
     }
 
@@ -255,9 +261,12 @@ final class CanvasView: NSView, NSTextViewDelegate {
         case .select:
             selectDown(at: p, event: event)
         case .text:
+            if let selected = model.selectedAnnotation, beginScale(selected, at: p) { break }
             if let id = Renderer.hitTest(p, in: model.doc.annotations, scale: s), model.annotation(id)?.kind == .text {
+                // Drag to move it; a click without moving starts editing (see mouseUp).
                 model.selectedID = id
-                beginTextEditing(id)
+                editOnMouseUpID = id
+                drag = .moving(id: id, last: p, didMove: false)
             } else {
                 createText(at: p)
             }
@@ -277,8 +286,33 @@ final class CanvasView: NSView, NSTextViewDelegate {
     }
 
     /// Lets drawing tools adjust the annotation that was just drawn (handles or body).
+    /// Corner handle that resizes text and counters.
+    private func scaleHandle(for a: Annotation) -> CGPoint? {
+        let s = model.doc.scale
+        switch a.kind {
+        case .text:
+            let f = Renderer.textFrame(a, scale: s)
+            return CGPoint(x: f.maxX + 4 / zoom, y: f.maxY + 4 / zoom)
+        case .counter:
+            let r = Renderer.counterRadius(a, scale: s)
+            return CGPoint(x: a.start.x + r * 0.75 + 4 / zoom, y: a.start.y + r * 0.75 + 4 / zoom)
+        default:
+            return nil
+        }
+    }
+
+    private func beginScale(_ a: Annotation, at p: CGPoint) -> Bool {
+        guard let handle = scaleHandle(for: a), hypot(p.x - handle.x, p.y - handle.y) <= 10 / zoom else { return false }
+        let origin = a.kind == .counter ? a.start : a.start
+        let distance = max(1, hypot(handle.x - origin.x, handle.y - origin.y))
+        model.registerUndo()
+        drag = .scale(id: a.id, origin: origin, startDistance: distance, startFontSize: a.style.fontSize)
+        return true
+    }
+
     private func grabSelected(at p: CGPoint) -> Bool {
         guard let selected = model.selectedAnnotation else { return false }
+        if beginScale(selected, at: p) { return true }
         if let isStart = handleHit(selected, at: p) {
             model.registerUndo()
             drag = .handle(id: selected.id, isStart: isStart)
@@ -293,6 +327,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
     }
 
     private func selectDown(at p: CGPoint, event: NSEvent) {
+        if let selected = model.selectedAnnotation, beginScale(selected, at: p) { return }
         if let selected = model.selectedAnnotation, let isStart = handleHit(selected, at: p) {
             model.registerUndo()
             drag = .handle(id: selected.id, isStart: isStart)
@@ -361,6 +396,11 @@ final class CanvasView: NSView, NSTextViewDelegate {
             let delta = CGPoint(x: p.x - last.x, y: p.y - last.y)
             model.update(id) { $0.offset(by: delta) }
             drag = .moving(id: id, last: p, didMove: true)
+        case .scale(let id, let origin, let startDistance, let startFontSize):
+            let distance = hypot(p.x - origin.x, p.y - origin.y)
+            let size = min(400, max(6, (startFontSize * distance / startDistance).rounded()))
+            model.update(id) { $0.style.fontSize = size }
+            model.style.fontSize = size
         case .handle(let id, let isStart):
             model.update(id) { a in
                 let other = isStart ? a.end : a.start
@@ -383,6 +423,13 @@ final class CanvasView: NSView, NSTextViewDelegate {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if case .moving(let id, _, let didMove) = drag, !didMove, editOnMouseUpID == id {
+            drag = .none
+            editOnMouseUpID = nil
+            beginTextEditing(id)
+            return
+        }
+        editOnMouseUpID = nil
         if case .creating(let a) = drag {
             let minLength = 4 / zoom
             let valid: Bool

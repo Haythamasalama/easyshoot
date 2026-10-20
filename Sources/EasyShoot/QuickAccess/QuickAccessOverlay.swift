@@ -145,14 +145,14 @@ struct QuickAccessView: View {
 
             if hovering {
                 VStack(spacing: 8) {
-                    pill("Copy", action: onCopy)
-                    pill("Save", action: onSave)
+                    pill(L("Copy"), action: onCopy)
+                    pill(L("Save"), action: onSave)
                 }
                 VStack {
                     HStack {
-                        circleButton("xmark", help: "Close", action: onClose)
+                        circleButton("xmark", help: L("Close"), action: onClose)
                         Spacer()
-                        circleButton("pencil", help: "Annotate", action: onEdit)
+                        circleButton("pencil", help: L("Annotate"), action: onEdit)
                     }
                     Spacer()
                 }

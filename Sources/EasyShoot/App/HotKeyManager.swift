@@ -48,21 +48,3 @@ final class HotKeyManager {
         }, 1, &spec, nil, &eventHandler)
     }
 }
-
-/// The default global shortcuts (⌥⇧⌘ + number, so they don't clash with macOS's own ⇧⌘3/4/5).
-struct Shortcut {
-    let title: String
-    let keyCode: Int
-    let key: String
-
-    static let modifiers = cmdKey | shiftKey | optionKey
-    static let display = "⌥⇧⌘"
-
-    static let captureArea = Shortcut(title: "Capture Area", keyCode: kVK_ANSI_4, key: "4")
-    static let captureFullscreen = Shortcut(title: "Capture Fullscreen", keyCode: kVK_ANSI_3, key: "3")
-    static let captureWindow = Shortcut(title: "Capture Window", keyCode: kVK_ANSI_5, key: "5")
-    static let scrollingCapture = Shortcut(title: "Scrolling Capture", keyCode: kVK_ANSI_6, key: "6")
-    static let openLast = Shortcut(title: "Annotate Clipboard Image", keyCode: kVK_ANSI_7, key: "7")
-
-    static let all: [Shortcut] = [captureArea, captureWindow, captureFullscreen, scrollingCapture, openLast]
-}

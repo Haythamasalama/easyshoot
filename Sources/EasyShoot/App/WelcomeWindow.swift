@@ -71,7 +71,7 @@ struct WelcomeView: View {
     @State private var hasScreenRecording = true
     @State private var requestedPermission = false
     @State private var showAtLaunch = false
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -79,9 +79,9 @@ struct WelcomeView: View {
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .frame(width: 84, height: 84)
-                Text("Welcome to EasyShoot")
+                Text(L("Welcome to EasyShoot"))
                     .font(.system(size: 26, weight: .bold))
-                Text("\(Brand.tagline)  ·  \(Brand.taglineArabic)")
+                Text(L("Capture. Mark up. Share."))
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 36)
@@ -96,8 +96,8 @@ struct WelcomeView: View {
                             .frame(width: 34, height: 34)
                             .background(RoundedRectangle(cornerRadius: 8).fill(Brand.signal.opacity(0.12)))
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("EasyShoot lives in your menu bar").font(.headline)
-                            Text("There’s no main window. Look for this icon at the top-right of your screen. On a MacBook with a notch it can be hidden, so the keyboard shortcuts below always work.")
+                            Text(L("EasyShoot lives in your menu bar")).font(.headline)
+                            Text(L("There’s no main window. Look for this icon at the top-right of your screen. On a MacBook with a notch it can be hidden, so the keyboard shortcuts below always work."))
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -109,10 +109,9 @@ struct WelcomeView: View {
 
                 card {
                     VStack(spacing: 8) {
-                        shortcutRow("Capture Area", "4")
-                        shortcutRow("Capture Window", "5")
-                        shortcutRow("Capture Fullscreen", "3")
-                        shortcutRow("Scrolling Capture", "6")
+                        ForEach([HotKeyAction.captureArea, .captureWindow, .captureFullscreen, .scrollingCapture]) { action in
+                            shortcutRow(action.title, ShortcutStore.shared.combo(for: action)?.displayString ?? "–")
+                        }
                     }
                 }
             }
@@ -121,11 +120,12 @@ struct WelcomeView: View {
             Spacer(minLength: 16)
 
             HStack {
-                Toggle("Show at launch", isOn: $showAtLaunch)
+                Toggle(L("Show at launch"), isOn: $showAtLaunch)
                     .toggleStyle(.checkbox)
                     .onChange(of: showAtLaunch) { _, value in WelcomeWindowController.setShowAtLaunch(value) }
                 Spacer()
-                Button("Done", action: close)
+                Button(L("Done"), action: close)
+                    .secondaryButtonStyle()
                     .keyboardShortcut(.cancelAction)
                 Button {
                     close()
@@ -134,9 +134,10 @@ struct WelcomeView: View {
                         CaptureCoordinator.shared.capture(.area)
                     }
                 } label: {
-                    Label("Take a Screenshot", systemImage: "camera.viewfinder")
+                    Label(L("Take a Screenshot"), systemImage: "camera.viewfinder")
                 }
                 .keyboardShortcut(.defaultAction)
+                .primaryButtonStyle()
                 .disabled(!hasScreenRecording)
             }
             .padding(.horizontal, 28)
@@ -159,12 +160,12 @@ struct WelcomeView: View {
                 .foregroundStyle(hasScreenRecording ? Color.green : Brand.signal)
                 .frame(width: 34)
             VStack(alignment: .leading, spacing: 3) {
-                Text("Screen Recording permission").font(.headline)
+                Text(L("Screen Recording permission")).font(.headline)
                 Text(hasScreenRecording
-                     ? "All set: you can take screenshots."
+                     ? L("All set: you can take screenshots.")
                      : requestedPermission
-                        ? "Turn on EasyShoot in the list, then press Restart."
-                        : "Required to take screenshots. Nothing ever leaves your Mac.")
+                        ? L("Turn on EasyShoot in the list, then press Restart.")
+                        : L("Required to take screenshots. Nothing ever leaves your Mac."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -172,24 +173,24 @@ struct WelcomeView: View {
             Spacer()
             if !hasScreenRecording {
                 if requestedPermission {
-                    Button("Restart") { WelcomeWindowController.relaunch() }
+                    Button(L("Restart")) { WelcomeWindowController.relaunch() }
                 } else {
-                    Button("Allow…") {
+                    Button(L("Allow…")) {
                         _ = CGRequestScreenCaptureAccess()
                         Permissions.openScreenRecordingSettings()
                         requestedPermission = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryButtonStyle()
                 }
             }
         }
     }
 
-    private func shortcutRow(_ title: String, _ key: String) -> some View {
+    private func shortcutRow(_ title: String, _ combo: String) -> some View {
         HStack {
             Text(title)
             Spacer()
-            Text("\(Shortcut.display)\(key)")
+            Text(combo)
                 .font(.system(.body, design: .rounded).weight(.medium))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
@@ -201,6 +202,6 @@ struct WelcomeView: View {
         content()
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.045)))
+            .glassSurface(cornerRadius: 14)
     }
 }

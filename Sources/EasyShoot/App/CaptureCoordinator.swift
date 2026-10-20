@@ -29,7 +29,7 @@ final class CaptureCoordinator {
         QuickAccessManager.shared.setHidden(true)
         let selector = RegionSelector()
         regionSelector = selector
-        selector.begin(message: "Drag over the area you want to scroll · Esc to cancel") { [weak self] rect, screen in
+        selector.begin(message: L("Drag over the area you want to scroll · Esc to cancel")) { [weak self] rect, screen in
             guard let self else { return }
             self.regionSelector = nil
             guard let rect, let screen else {

@@ -11,8 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use the newest Xcode on the runner
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE"
+
       - name: Toolchain
         run: swift --version
+
+      - name: Check localizations
+        run: |
+          python3 scripts/check-localizations.py
+          for f in Resources/Localization/*.lproj/Localizable.strings; do plutil -lint "$f"; done
 
       - name: Test
         run: swift test

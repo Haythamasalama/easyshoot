@@ -11,10 +11,10 @@ enum Permissions {
         if CGPreflightScreenCaptureAccess() { return true }
         if CGRequestScreenCaptureAccess() { return true }
         let alert = NSAlert()
-        alert.messageText = "Allow Screen Recording"
-        alert.informativeText = "EasyShoot needs Screen Recording permission to take screenshots.\n\nOpen System Settings → Privacy & Security → Screen & System Audio Recording, enable EasyShoot, then quit and reopen EasyShoot."
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = L("Allow Screen Recording")
+        alert.informativeText = L("EasyShoot needs Screen Recording permission to take screenshots.\n\nOpen System Settings → Privacy & Security → Screen & System Audio Recording, enable EasyShoot, then quit and reopen EasyShoot.")
+        alert.addButton(withTitle: L("Open System Settings"))
+        alert.addButton(withTitle: L("Cancel"))
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn { openScreenRecordingSettings() }
         return false

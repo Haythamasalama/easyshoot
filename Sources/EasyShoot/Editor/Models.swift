@@ -74,18 +74,18 @@ enum Tool: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .select: return "Select & Move"
-        case .crop: return "Crop"
-        case .arrow: return "Arrow"
-        case .line: return "Line"
-        case .rectangle: return "Rectangle"
-        case .filledRectangle: return "Filled Rectangle"
-        case .ellipse: return "Ellipse"
-        case .text: return "Text"
-        case .counter: return "Counter"
-        case .highlighter: return "Highlighter"
-        case .pen: return "Pen"
-        case .pixelate: return "Pixelate"
+        case .select: return L("Select & Move")
+        case .crop: return L("Crop")
+        case .arrow: return L("Arrow")
+        case .line: return L("Line")
+        case .rectangle: return L("Rectangle")
+        case .filledRectangle: return L("Filled Rectangle")
+        case .ellipse: return L("Ellipse")
+        case .text: return L("Text")
+        case .counter: return L("Counter")
+        case .highlighter: return L("Highlighter")
+        case .pen: return L("Pen")
+        case .pixelate: return L("Pixelate")
         }
     }
 
@@ -151,7 +151,7 @@ enum TextDirection: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .auto: return "Auto"
+        case .auto: return L("Auto")
         case .ltr: return "LTR"
         case .rtl: return "RTL"
         }
@@ -189,29 +189,11 @@ enum TextStyleKind: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .plain: return "Plain"
-        case .background: return "Bubble"
-        case .outline: return "Outline"
+        case .plain: return L("Plain")
+        case .background: return L("Bubble")
+        case .outline: return L("Outline")
         }
     }
-}
-
-struct FontChoice: Identifiable, Hashable {
-    let name: String
-    let title: String
-    var id: String { name }
-
-    static let all: [FontChoice] = [
-        FontChoice(name: "", title: "System"),
-        FontChoice(name: "HelveticaNeue-Bold", title: "Helvetica Neue"),
-        FontChoice(name: "AvenirNext-DemiBold", title: "Avenir Next"),
-        FontChoice(name: "Menlo-Bold", title: "Menlo"),
-        FontChoice(name: "MarkerFelt-Wide", title: "Marker Felt"),
-        FontChoice(name: "GeezaPro-Bold", title: "Geeza Pro (عربي)"),
-        FontChoice(name: "KufiStandardGK", title: "Kufi (عربي)"),
-        FontChoice(name: "DecoTypeNaskh", title: "Naskh (عربي)"),
-        FontChoice(name: "Baghdad", title: "Baghdad (عربي)"),
-    ]
 }
 
 /// Visual style of an annotation. Sizes are in points and multiplied by the image's pixel scale when drawn.
@@ -221,13 +203,9 @@ struct AnnotationStyle: Codable, Hashable {
     var fontSize: CGFloat = 22
     var fontName: String = ""
     var textDirection: TextDirection = .auto
-    var textStyle: TextStyleKind = .background
+    var textStyle: TextStyleKind = .plain
     var shadow: Bool = true
-
-    func font(size: CGFloat) -> NSFont {
-        if !fontName.isEmpty, let f = NSFont(name: fontName, size: size) { return f }
-        return NSFont.systemFont(ofSize: size, weight: .semibold)
-    }
+    /// Family name (or legacy PostScript name); empty = system font. Resolved in FontLibrary.swift.
 }
 
 /// An annotation, positioned in image pixel coordinates (top-left origin).
@@ -262,10 +240,10 @@ enum BackgroundFill: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .gradient: return "Gradient"
-        case .solid: return "Solid"
-        case .custom: return "Custom"
-        case .transparent: return "None"
+        case .gradient: return L("Gradient")
+        case .solid: return L("Solid")
+        case .custom: return L("Custom")
+        case .transparent: return L("None")
         }
     }
 }
@@ -277,7 +255,7 @@ enum AspectRatio: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .auto: return "Auto"
+        case .auto: return L("Auto")
         case .square: return "1:1"
         case .fourThree: return "4:3"
         case .threeTwo: return "3:2"
@@ -404,9 +382,9 @@ enum ResizeMode: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .original: return "Original"
-        case .percent: return "Percent"
-        case .width: return "Width"
+        case .original: return L("Original")
+        case .percent: return L("Percent")
+        case .width: return L("Width")
         }
     }
 }

@@ -19,6 +19,9 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/EasyShoot" "$APP/Contents/MacOS/EasyShoot"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+for lproj in Resources/Localization/*.lproj; do
+  cp -R "$lproj" "$APP/Contents/Resources/"
+done
 if [[ -d Resources/AppIcon.iconset ]]; then
   iconutil -c icns Resources/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 fi

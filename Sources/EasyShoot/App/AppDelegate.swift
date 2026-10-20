@@ -2,14 +2,17 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private let coordinator = CaptureCoordinator.shared
+    private let shortcuts = ShortcutStore.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainMenu.install()
+        FontLibrary.shared.registerDownloadedFonts()
         setupStatusItem()
+        shortcuts.onChange = { [weak self] in self?.registerHotKeys() }
         registerHotKeys()
         if WelcomeWindowController.shared.shouldShowAtLaunch {
             WelcomeWindowController.shared.show()
@@ -32,69 +35,104 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = item.button {
-            button.image = Brand.menuBarImage()
-        }
-
+        item.button?.image = Brand.menuBarImage()
         let menu = NSMenu()
-        addItem(to: menu, Shortcut.captureArea, #selector(captureArea(_:)))
-        addItem(to: menu, Shortcut.captureWindow, #selector(captureWindow(_:)))
-        addItem(to: menu, Shortcut.captureFullscreen, #selector(captureFullscreen(_:)))
-        addItem(to: menu, Shortcut.scrollingCapture, #selector(scrollingCapture(_:)))
-        menu.addItem(.separator())
-        menu.addItem(makeItem("Open Image…", #selector(openImage(_:))))
-        addItem(to: menu, Shortcut.openLast, #selector(annotateClipboard(_:)))
-        menu.addItem(.separator())
-        menu.addItem(makeItem("Welcome & Permissions…", #selector(showWelcome(_:))))
-        menu.addItem(makeItem("Settings…", #selector(openSettings(_:)), key: ","))
-        menu.addItem(makeItem("Quit EasyShoot", #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
+        menu.delegate = self
         item.menu = menu
         statusItem = item
+        rebuildMenu(menu)
     }
 
-    private func makeItem(_ title: String, _ action: Selector, key: String = "", target: AnyObject? = nil) -> NSMenuItem {
+    /// Rebuilt each time it opens, so titles and shortcuts are always current.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        rebuildMenu(menu)
+    }
+
+    private func rebuildMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        menu.addItem(actionItem(.captureArea, symbol: "rectangle.dashed"))
+        menu.addItem(actionItem(.captureWindow, symbol: "macwindow"))
+        menu.addItem(actionItem(.captureFullscreen, symbol: "display"))
+        menu.addItem(actionItem(.scrollingCapture, symbol: "arrow.up.and.down.text.horizontal"))
+        menu.addItem(.separator())
+        menu.addItem(makeItem(L("Open Image…"), #selector(openImage(_:)), symbol: "photo.on.rectangle"))
+        menu.addItem(actionItem(.annotateClipboard, symbol: "doc.on.clipboard"))
+        menu.addItem(.separator())
+        menu.addItem(makeItem(L("Welcome & Permissions…"), #selector(showWelcome(_:)), symbol: "hand.wave"))
+        menu.addItem(makeItem(L("Settings…"), #selector(openSettings(_:)), key: ",", symbol: "gearshape"))
+        menu.addItem(.separator())
+        menu.addItem(makeItem(L("Quit EasyShoot"), #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
+    }
+
+    private func makeItem(_ title: String, _ action: Selector, key: String = "", target: AnyObject? = nil, symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = target ?? self
+        if let symbol { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
         return item
     }
 
-    private func addItem(to menu: NSMenu, _ shortcut: Shortcut, _ action: Selector) {
-        let item = makeItem(shortcut.title, action, key: shortcut.key)
-        item.keyEquivalentModifierMask = [.command, .shift, .option]
-        menu.addItem(item)
+    private func actionItem(_ action: HotKeyAction, symbol: String) -> NSMenuItem {
+        let item = makeItem(action.title, #selector(performAction(_:)), symbol: symbol)
+        item.representedObject = action.rawValue
+        if let combo = shortcuts.combo(for: action), !combo.menuKeyEquivalent.isEmpty {
+            item.keyEquivalent = combo.menuKeyEquivalent
+            item.keyEquivalentModifierMask = combo.eventModifiers
+        }
+        return item
     }
+
+    // MARK: Hotkeys
 
     private func registerHotKeys() {
         let hotKeys = HotKeyManager.shared
-        let mods = Shortcut.modifiers
-        hotKeys.register(keyCode: Shortcut.captureArea.keyCode, modifiers: mods) { [weak self] in self?.coordinator.capture(.area) }
-        hotKeys.register(keyCode: Shortcut.captureWindow.keyCode, modifiers: mods) { [weak self] in self?.coordinator.capture(.window) }
-        hotKeys.register(keyCode: Shortcut.captureFullscreen.keyCode, modifiers: mods) { [weak self] in self?.coordinator.capture(.fullscreen) }
-        hotKeys.register(keyCode: Shortcut.scrollingCapture.keyCode, modifiers: mods) { [weak self] in self?.coordinator.startScrollingCapture() }
-        hotKeys.register(keyCode: Shortcut.openLast.keyCode, modifiers: mods) { [weak self] in self?.coordinator.annotateClipboard() }
+        hotKeys.unregisterAll()
+        guard !shortcuts.isRecording else { return }
+        for action in HotKeyAction.allCases {
+            guard let combo = shortcuts.combo(for: action) else { continue }
+            hotKeys.register(keyCode: Int(combo.keyCode), modifiers: Int(combo.carbonModifiers)) { [weak self] in
+                self?.perform(action)
+            }
+        }
+    }
+
+    private func perform(_ action: HotKeyAction) {
+        switch action {
+        case .captureArea: coordinator.capture(.area)
+        case .captureWindow: coordinator.capture(.window)
+        case .captureFullscreen: coordinator.capture(.fullscreen)
+        case .scrollingCapture: coordinator.startScrollingCapture()
+        case .annotateClipboard: coordinator.annotateClipboard()
+        }
     }
 
     // MARK: Actions
 
-    @objc func captureArea(_ sender: Any?) { coordinator.capture(.area) }
-    @objc func captureWindow(_ sender: Any?) { coordinator.capture(.window) }
-    @objc func captureFullscreen(_ sender: Any?) { coordinator.capture(.fullscreen) }
-    @objc func scrollingCapture(_ sender: Any?) { coordinator.startScrollingCapture() }
+    @objc func performAction(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let action = HotKeyAction(rawValue: raw) else { return }
+        perform(action)
+    }
+
     @objc func openImage(_ sender: Any?) { coordinator.openImageFile() }
     @objc func annotateClipboard(_ sender: Any?) { coordinator.annotateClipboard() }
-
     @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.shared.show() }
 
     @objc func openSettings(_ sender: Any?) {
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 560, height: 460),
-                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            window.title = "EasyShoot Settings"
+            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 760, height: 540),
+                                  styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                                  backing: .buffered, defer: false)
+            window.title = L("Settings")
+            window.titlebarAppearsTransparent = true
+            window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared).tint(Brand.signal))
+            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared, shortcuts: .shared)
+                .tint(Brand.signal))
             window.center()
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-                MainActor.assumeIsolated { AppActivation.windowClosed() }
+                MainActor.assumeIsolated {
+                    ShortcutStore.shared.isRecording = false
+                    AppActivation.windowClosed()
+                }
             }
             settingsWindow = window
         }

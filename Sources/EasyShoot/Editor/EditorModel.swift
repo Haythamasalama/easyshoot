@@ -72,6 +72,17 @@ final class EditorModel: ObservableObject {
 
     // MARK: Style
 
+    /// The floating text bar shows for the text tool and whenever a text is selected.
+    var showsTextBar: Bool {
+        tool == .text || selectedAnnotation?.kind == .text || selectedAnnotation?.kind == .counter
+    }
+
+    func adjustFontSize(by delta: CGFloat) {
+        var newStyle = activeStyle
+        newStyle.fontSize = min(200, max(8, (newStyle.fontSize + delta).rounded()))
+        setActiveStyle(newStyle)
+    }
+
     /// Style shown in the inspector: the selected annotation's, or the one used for new annotations.
     var activeStyle: AnnotationStyle { selectedAnnotation?.style ?? style }
 
@@ -204,12 +215,12 @@ final class EditorModel: ObservableObject {
         doc.background = preset.background
         style = preset.style
         export = preset.export
-        flash("Applied “\(preset.name)”")
+        flash(L("Applied “%@”", preset.name))
     }
 
     func makePreset(named name: String) -> Preset {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return Preset(name: trimmed.isEmpty ? "My Preset" : trimmed, background: doc.background, style: style, export: export)
+        return Preset(name: trimmed.isEmpty ? L("My Preset") : trimmed, background: doc.background, style: style, export: export)
     }
 
     // MARK: Export
@@ -232,16 +243,16 @@ final class EditorModel: ObservableObject {
     func copyToClipboard() {
         guard let r = renderForExport() else { return }
         ExportService.copyToPasteboard(r.image, dpiScale: r.dpiScale)
-        flash("Copied to clipboard")
+        flash(L("Copied to clipboard"))
     }
 
     func saveQuick() {
         guard let r = renderForExport() else { return }
         do {
             let url = try ExportService.save(r.image, options: export, dpiScale: r.dpiScale, to: ExportService.defaultSaveURL(for: export.format))
-            flash("Saved \(url.lastPathComponent)")
+            flash(L("Saved %@", url.lastPathComponent))
         } catch {
-            flash("Save failed: \(error.localizedDescription)")
+            flash(L("Save failed: %@", error.localizedDescription))
         }
     }
 
@@ -249,7 +260,7 @@ final class EditorModel: ObservableObject {
         guard let r = renderForExport() else { return }
         let options = export
         ExportService.saveWithPanel(r.image, options: options, dpiScale: r.dpiScale, window: window) { [weak self] url in
-            if let url { self?.flash("Saved \(url.lastPathComponent)") }
+            if let url { self?.flash(L("Saved %@", url.lastPathComponent)) }
         }
     }
 

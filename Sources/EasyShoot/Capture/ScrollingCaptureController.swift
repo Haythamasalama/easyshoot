@@ -7,7 +7,7 @@ import SwiftUI
 @MainActor
 final class ScrollingCaptureController: ObservableObject {
     @Published var capturedHeight = 0
-    @Published var status = "Scroll down slowly, or press Auto-scroll."
+    @Published var status = L("Scroll down slowly, or press Auto-scroll.")
     @Published var isAutoScrolling = false
 
     let rect: CGRect
@@ -61,7 +61,7 @@ final class ScrollingCaptureController: ObservableObject {
         if !isAutoScrolling {
             guard Permissions.hasAccessibility else {
                 Permissions.requestAccessibility()
-                status = "Auto-scroll needs Accessibility access: enable EasyShoot in System Settings → Privacy & Security → Accessibility."
+                status = L("Auto-scroll needs Accessibility access: enable EasyShoot in System Settings → Privacy & Security → Accessibility.")
                 return
             }
             CGWarpMouseCursorPosition(regionCenterInCGCoordinates)
@@ -77,7 +77,7 @@ final class ScrollingCaptureController: ObservableObject {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
             guard let display = content.displays.first(where: { $0.displayID == displayID }) ?? content.displays.first else {
-                status = "Could not find the display."
+                status = L("Could not find the display.")
                 return
             }
             // Exclude EasyShoot's own windows (border + control panel) from the frames.
@@ -96,7 +96,7 @@ final class ScrollingCaptureController: ObservableObject {
             config.captureResolution = .best
             configuration = config
         } catch {
-            status = "Screen Recording permission is required for scrolling capture."
+            status = L("Screen Recording permission is required for scrolling capture.")
         }
     }
 
@@ -128,17 +128,17 @@ final class ScrollingCaptureController: ObservableObject {
         case .first, .appended:
             capturedHeight = stitcher.height
             unchangedCount = 0
-            status = isAutoScrolling ? "Auto-scrolling… press Done any time." : "Capturing… keep scrolling, then press Done."
+            status = isAutoScrolling ? L("Auto-scrolling… press Done any time.") : L("Capturing… keep scrolling, then press Done.")
         case .unchanged:
             unchangedCount += 1
             if isAutoScrolling && unchangedCount >= 4 {
-                status = "Reached the end."
+                status = L("Reached the end.")
                 finish()
             }
         case .noOverlap:
-            status = "Scrolled too fast — scroll back up a little and continue slower."
+            status = L("Scrolled too fast — scroll back up a little and continue slower.")
         case .limitReached:
-            status = "Maximum height reached."
+            status = L("Maximum height reached.")
             finish()
         }
     }
@@ -224,7 +224,7 @@ struct ScrollingPanelView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "scroll")
-                Text("Scrolling Capture").font(.headline)
+                Text(L("Scrolling Capture")).font(.headline)
                 Spacer()
                 Text("\(controller.capturedHeight) px")
                     .monospacedDigit()
@@ -239,17 +239,18 @@ struct ScrollingPanelView: View {
                 Button {
                     controller.toggleAutoScroll()
                 } label: {
-                    Label(controller.isAutoScrolling ? "Pause" : "Auto-scroll",
+                    Label(controller.isAutoScrolling ? L("Pause") : L("Auto-scroll"),
                           systemImage: controller.isAutoScrolling ? "pause.fill" : "arrow.down.circle")
                 }
                 Spacer()
-                Button("Cancel") { controller.cancel() }
-                Button("Done") { controller.finish() }
-                    .buttonStyle(.borderedProminent)
+                Button(L("Cancel")) { controller.cancel() }
+                    .secondaryButtonStyle()
+                Button(L("Done")) { controller.finish() }
+                    .primaryButtonStyle()
             }
         }
         .padding(14)
         .frame(width: 360, height: 130)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassSurface(cornerRadius: 16)
     }
 }
