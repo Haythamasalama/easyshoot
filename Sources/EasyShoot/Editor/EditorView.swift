@@ -6,8 +6,16 @@ struct EditorView: View {
     /// Hidden on small screens to give the canvas the whole window.
     @AppStorage("showInspector") private var showInspector = true
 
+    private let inspectorTab: InspectorView.Tab
+
     /// The inspector always has this width; its content adapts to it, never the other way round.
     static let inspectorWidth: CGFloat = 290
+
+    init(model: EditorModel, presets: PresetStore, inspectorTab: InspectorView.Tab = .style) {
+        self.model = model
+        self.presets = presets
+        self.inspectorTab = inspectorTab
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,11 +23,13 @@ struct EditorView: View {
                 ZStack(alignment: .top) {
                     CanvasRepresentable(model: model)
                         .frame(minWidth: 400, minHeight: 320)
+                        .layoutProbe("canvas")
                     VStack(spacing: 8) {
                         ViewThatFits(in: .horizontal) {
                             FloatingToolbar(model: model)
                             FloatingToolbar(model: model, compact: true)
                         }
+                        .layoutProbe("toolbar")
                         if model.isCropping {
                             CropBar(model: model)
                         } else if model.showsTextBar {
@@ -27,6 +37,7 @@ struct EditorView: View {
                                 TextBar(model: model)
                                 TextBar(model: model, compact: true)
                             }
+                            .layoutProbe("textBar")
                         }
                     }
                     .padding(.top, 12)
@@ -36,14 +47,16 @@ struct EditorView: View {
                 }
                 if showInspector {
                     Divider()
-                    InspectorView(model: model)
+                    InspectorView(model: model, tab: inspectorTab)
                         .frame(width: Self.inspectorWidth)
                         .clipped()
+                        .layoutProbe("inspector")
                         .transition(.move(edge: .trailing))
                 }
             }
             Divider()
             EditorBottomBar(model: model, presets: presets, showInspector: $showInspector)
+                .layoutProbe("bottomBar")
         }
         .animation(.easeInOut(duration: 0.2), value: showInspector)
     }
@@ -265,7 +278,12 @@ struct CropBar: View {
 
 struct InspectorView: View {
     @ObservedObject var model: EditorModel
-    @State private var tab: Tab = .style
+    @State private var tab: Tab
+
+    init(model: EditorModel, tab: Tab = .style) {
+        self.model = model
+        _tab = State(initialValue: tab)
+    }
 
     enum Tab: CaseIterable {
         case style, background, export
@@ -282,6 +300,7 @@ struct InspectorView: View {
     var body: some View {
         VStack(spacing: 0) {
             FittingSegments(selection: $tab, options: Tab.allCases.map { ($0, $0.title) })
+                .layoutProbe("inspectorTabs")
                 .padding(12)
 
             ScrollView(.vertical) {
@@ -294,6 +313,7 @@ struct InspectorView: View {
                 }
                 .padding(.bottom, 16)
                 .frame(width: EditorView.inspectorWidth - 24, alignment: .leading)
+                .layoutProbe("inspectorContent")
                 .padding(.horizontal, 12)
             }
         }

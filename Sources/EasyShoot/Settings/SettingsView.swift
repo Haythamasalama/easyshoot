@@ -6,7 +6,14 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var presets: PresetStore
     @ObservedObject var shortcuts: ShortcutStore
-    @State private var page: Page? = .general
+    @State private var page: Page?
+
+    init(settings: AppSettings, presets: PresetStore, shortcuts: ShortcutStore, page: Page = .general) {
+        self.settings = settings
+        self.presets = presets
+        self.shortcuts = shortcuts
+        _page = State(initialValue: page)
+    }
 
     enum Page: String, CaseIterable, Identifiable {
         case general, shortcuts, presets, language, permissions, about
@@ -59,6 +66,7 @@ struct SettingsView: View {
                 .padding(.vertical, 2)
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
+            .layoutProbe("settingsSidebar")
         } detail: {
             Group {
                 switch page ?? .general {
@@ -71,6 +79,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle((page ?? .general).title)
+            .layoutProbe("settingsDetail")
         }
         .frame(minWidth: 720, minHeight: 500)
     }
