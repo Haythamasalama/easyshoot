@@ -115,7 +115,8 @@ final class ImageStitcher: @unchecked Sendable {
         guard end - start >= 16 else { return .unchanged }
 
         guard let shift = Self.findShift(prev: prev, next: sigs, start: start, end: end) else { return .noOverlap }
-        guard storedHeight + shift <= maxHeight else { return .limitReached }
+        // Cap the bytes as well as the rows: a 6K-wide region would otherwise reach gigabytes.
+        guard storedHeight + shift <= maxHeight, (storedHeight + shift) * w * 4 <= 1 << 30 else { return .limitReached }
 
         // The canvas always ends with the previous frame's bottom. Drop its footer,
         // then append the newly revealed rows plus the (current) footer.

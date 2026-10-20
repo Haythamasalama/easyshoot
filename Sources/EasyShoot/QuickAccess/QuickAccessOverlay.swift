@@ -9,8 +9,12 @@ final class QuickAccessManager {
 
     private var panels: [QuickAccessPanel] = []
     private var hidden = false
+    /// The screen of the latest capture, where the thumbnails stack.
+    private var screen: NSScreen?
 
     func show(_ result: CaptureResult) {
+        let mouse = NSEvent.mouseLocation
+        screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         let panel = QuickAccessPanel(result: result, manager: self)
         panels.append(panel)
         if panels.count > 5, let oldest = panels.first { close(oldest) }
@@ -42,11 +46,17 @@ final class QuickAccessManager {
     }
 
     private func relayout() {
-        guard let screen = NSScreen.main else { return }
+        // A display that was unplugged falls back to the main one.
+        guard let screen = screen.flatMap({ NSScreen.screens.contains($0) ? $0 : nil }) ?? NSScreen.main else { return }
         let visible = screen.visibleFrame
-        var y = visible.minY + 16
+        var x = visible.minX + 16, y = visible.minY + 16
         for panel in panels.reversed() {
-            panel.setFrameOrigin(CGPoint(x: visible.minX + 16, y: y))
+            // Start a new column rather than running under the menu bar on a short screen.
+            if y > visible.minY + 16, y + panel.frame.height > visible.maxY - 16 {
+                x += 236
+                y = visible.minY + 16
+            }
+            panel.setFrameOrigin(CGPoint(x: x, y: y))
             y += panel.frame.height + 10
         }
     }
@@ -105,7 +115,9 @@ final class QuickAccessPanel: FloatingPanel {
         hasShadow = true
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let thumbnail = NSImage(cgImage: result.image, size: CGSize(width: result.image.width, height: result.image.height))
+        // A thumbnail-sized copy: redrawing a huge scrolling capture at 240 pt on every hover would lag.
+        let small = Renderer.downsample(result.image, maxSide: 1024) ?? result.image
+        let thumbnail = NSImage(cgImage: small, size: CGSize(width: small.width, height: small.height))
         let view = QuickAccessView(
             image: thumbnail,
             onHover: { [weak self] in self?.isHovered = $0 },
@@ -169,6 +181,14 @@ struct QuickAccessView: View {
         .onTapGesture(count: 2, perform: onEdit)
         .onDrag(dragProvider)
         .animation(.easeOut(duration: 0.12), value: hovering)
+        // The buttons only appear on hover; VoiceOver gets the same actions all the time.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L("Screenshot"))
+        .accessibilityAddTraits(.isImage)
+        .accessibilityAction(named: L("Copy"), onCopy)
+        .accessibilityAction(named: L("Save"), onSave)
+        .accessibilityAction(named: L("Annotate"), onEdit)
+        .accessibilityAction(named: L("Close"), onClose)
     }
 
     private func pill(_ title: String, action: @escaping () -> Void) -> some View {

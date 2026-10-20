@@ -6,7 +6,16 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var presets: PresetStore
     @ObservedObject var shortcuts: ShortcutStore
-    @State private var page: Page? = .general
+    @State private var page: Page?
+    /// The sidebar always stays: the window has no toolbar button to bring it back once dragged away.
+    @State private var columns = NavigationSplitViewVisibility.all
+
+    init(settings: AppSettings, presets: PresetStore, shortcuts: ShortcutStore, page: Page = .general) {
+        self.settings = settings
+        self.presets = presets
+        self.shortcuts = shortcuts
+        _page = State(initialValue: page)
+    }
 
     enum Page: String, CaseIterable, Identifiable {
         case general, shortcuts, presets, language, permissions, about
@@ -48,7 +57,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columns) {
             List(Page.allCases, selection: $page) { page in
                 Label {
                     Text(page.title)
@@ -59,6 +68,7 @@ struct SettingsView: View {
                 .padding(.vertical, 2)
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
+            .layoutProbe("settingsSidebar")
         } detail: {
             Group {
                 switch page ?? .general {
@@ -71,6 +81,13 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle((page ?? .general).title)
+            // Keeps labels near their controls when the window is made very wide.
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
+            .layoutProbe("settingsDetail")
+        }
+        .onChange(of: columns) { _, visibility in
+            if visibility != .all { columns = .all }
         }
         .frame(minWidth: 720, minHeight: 500)
     }
@@ -211,6 +228,8 @@ private struct PresetSettings: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.borderless)
+                        .help(L("Delete"))
+                        .accessibilityLabel(L("Delete"))
                     }
                 }
             } header: {
@@ -332,6 +351,8 @@ private struct PermissionSettings: View {
         }
         .formStyle(.grouped)
         .onAppear(perform: refresh)
+        // Coming back from System Settings shows the new state without pressing Refresh.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
     }
 
     private func refresh() {
@@ -364,14 +385,17 @@ private struct AboutSettings: View {
     var body: some View {
         VStack(spacing: 14) {
             Spacer()
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: Brand.appIcon)
                 .resizable()
                 .frame(width: 96, height: 96)
+                .accessibilityHidden(true)
             HStack(spacing: 0) {
                 Text("Easy").foregroundStyle(.primary)
                 Text("Shoot").foregroundStyle(Brand.signal)
             }
             .font(.system(size: 30, weight: .heavy))
+            // The wordmark is a name, not a sentence: it reads EasyShoot in Arabic too.
+            .environment(\.layoutDirection, .leftToRight)
             Text(L("Version %@", Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"))
                 .foregroundStyle(.secondary)
             Text(L("Capture. Mark up. Share."))

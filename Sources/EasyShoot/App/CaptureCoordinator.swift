@@ -11,8 +11,11 @@ final class CaptureCoordinator {
     private var regionSelector: RegionSelector?
     private var isCapturing = false
 
+    /// True while a screenshot is being taken in any way, so nothing else (like an update offer) pops up.
+    var isBusy: Bool { isCapturing || scrolling != nil || regionSelector != nil }
+
     func capture(_ mode: CaptureMode) {
-        guard !isCapturing, scrolling == nil, Permissions.ensureScreenRecording() else { return }
+        guard !isBusy, Permissions.ensureScreenRecording() else { return }
         isCapturing = true
         QuickAccessManager.shared.setHidden(true)
         let settings = AppSettings.shared
@@ -25,7 +28,7 @@ final class CaptureCoordinator {
     }
 
     func startScrollingCapture() {
-        guard !isCapturing, scrolling == nil, regionSelector == nil, Permissions.ensureScreenRecording() else { return }
+        guard !isBusy, Permissions.ensureScreenRecording() else { return }
         QuickAccessManager.shared.setHidden(true)
         let selector = RegionSelector()
         regionSelector = selector
@@ -59,8 +62,14 @@ final class CaptureCoordinator {
                 ExportService.copyToPasteboard(rendered.image, dpiScale: rendered.dpiScale)
             }
             if settings.saveAfterCapture {
-                _ = try? ExportService.save(rendered.image, options: rendered.options, dpiScale: rendered.dpiScale,
-                                            to: ExportService.defaultSaveURL(for: rendered.options.format))
+                do {
+                    _ = try ExportService.save(rendered.image, options: rendered.options, dpiScale: rendered.dpiScale,
+                                               to: ExportService.defaultSaveURL(for: rendered.options.format))
+                } catch {
+                    // For example the save folder is on a drive that's no longer connected: say so, never lose it silently.
+                    NSApp.activate()
+                    NSAlert(error: error).runModal()
+                }
             }
         }
         if settings.openEditorAfterCapture {

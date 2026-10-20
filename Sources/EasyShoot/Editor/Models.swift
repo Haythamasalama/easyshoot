@@ -295,24 +295,40 @@ enum ContentAlignment: String, Codable, CaseIterable {
         case .bottomRight: return CGPoint(x: 1, y: 1)
         }
     }
+
+    var title: String {
+        switch self {
+        case .topLeft: return L("Top left")
+        case .top: return L("Top")
+        case .topRight: return L("Top right")
+        case .left: return L("Left")
+        case .center: return L("Center")
+        case .right: return L("Right")
+        case .bottomLeft: return L("Bottom left")
+        case .bottom: return L("Bottom")
+        case .bottomRight: return L("Bottom right")
+        }
+    }
 }
 
-struct GradientPreset {
+struct GradientPreset: Identifiable {
     let name: String
     let colors: [RGBAColor]
     let angle: Double
 
+    var id: String { name }
+
     static let all: [GradientPreset] = [
-        GradientPreset(name: "Ocean", colors: [RGBAColor(hex: 0x4FACFE), RGBAColor(hex: 0x00F2FE)], angle: 135),
-        GradientPreset(name: "Sunset", colors: [RGBAColor(hex: 0xFA709A), RGBAColor(hex: 0xFEE140)], angle: 135),
-        GradientPreset(name: "Lavender", colors: [RGBAColor(hex: 0xA18CD1), RGBAColor(hex: 0xFBC2EB)], angle: 135),
-        GradientPreset(name: "Mint", colors: [RGBAColor(hex: 0x43E97B), RGBAColor(hex: 0x38F9D7)], angle: 135),
-        GradientPreset(name: "Indigo", colors: [RGBAColor(hex: 0x667EEA), RGBAColor(hex: 0x764BA2)], angle: 135),
-        GradientPreset(name: "Peach", colors: [RGBAColor(hex: 0xFF9A9E), RGBAColor(hex: 0xFECFEF)], angle: 135),
-        GradientPreset(name: "Night", colors: [RGBAColor(hex: 0x0F2027), RGBAColor(hex: 0x203A43), RGBAColor(hex: 0x2C5364)], angle: 135),
-        GradientPreset(name: "Flame", colors: [RGBAColor(hex: 0xF12711), RGBAColor(hex: 0xF5AF19)], angle: 135),
-        GradientPreset(name: "Sky", colors: [RGBAColor(hex: 0x89F7FE), RGBAColor(hex: 0x66A6FF)], angle: 135),
-        GradientPreset(name: "Graphite", colors: [RGBAColor(hex: 0x434343), RGBAColor(hex: 0x000000)], angle: 135),
+        GradientPreset(name: L("Ocean"), colors: [RGBAColor(hex: 0x4FACFE), RGBAColor(hex: 0x00F2FE)], angle: 135),
+        GradientPreset(name: L("Sunset"), colors: [RGBAColor(hex: 0xFA709A), RGBAColor(hex: 0xFEE140)], angle: 135),
+        GradientPreset(name: L("Lavender"), colors: [RGBAColor(hex: 0xA18CD1), RGBAColor(hex: 0xFBC2EB)], angle: 135),
+        GradientPreset(name: L("Mint"), colors: [RGBAColor(hex: 0x43E97B), RGBAColor(hex: 0x38F9D7)], angle: 135),
+        GradientPreset(name: L("Indigo"), colors: [RGBAColor(hex: 0x667EEA), RGBAColor(hex: 0x764BA2)], angle: 135),
+        GradientPreset(name: L("Peach"), colors: [RGBAColor(hex: 0xFF9A9E), RGBAColor(hex: 0xFECFEF)], angle: 135),
+        GradientPreset(name: L("Night"), colors: [RGBAColor(hex: 0x0F2027), RGBAColor(hex: 0x203A43), RGBAColor(hex: 0x2C5364)], angle: 135),
+        GradientPreset(name: L("Flame"), colors: [RGBAColor(hex: 0xF12711), RGBAColor(hex: 0xF5AF19)], angle: 135),
+        GradientPreset(name: L("Sky"), colors: [RGBAColor(hex: 0x89F7FE), RGBAColor(hex: 0x66A6FF)], angle: 135),
+        GradientPreset(name: L("Graphite"), colors: [RGBAColor(hex: 0x434343), RGBAColor(hex: 0x000000)], angle: 135),
     ]
 }
 
@@ -437,11 +453,11 @@ struct Preset: Codable, Identifiable, Hashable {
         social.padding = 72
 
         return [
-            Preset(name: "Plain", background: BackgroundSettings(), style: AnnotationStyle(), export: ExportOptions()),
-            Preset(name: "Ocean Frame", background: ocean, style: AnnotationStyle(), export: ExportOptions()),
-            Preset(name: "Sunset Frame", background: sunset, style: AnnotationStyle(color: .blue), export: ExportOptions()),
-            Preset(name: "Dark Brand", background: dark, style: AnnotationStyle(color: .yellow), export: ExportOptions()),
-            Preset(name: "Social 16:9", background: social, style: AnnotationStyle(), export: ExportOptions(format: .jpeg)),
+            Preset(name: L("Plain"), background: BackgroundSettings(), style: AnnotationStyle(), export: ExportOptions()),
+            Preset(name: L("Ocean Frame"), background: ocean, style: AnnotationStyle(), export: ExportOptions()),
+            Preset(name: L("Sunset Frame"), background: sunset, style: AnnotationStyle(color: .blue), export: ExportOptions()),
+            Preset(name: L("Dark Brand"), background: dark, style: AnnotationStyle(color: .yellow), export: ExportOptions()),
+            Preset(name: L("Social 16:9"), background: social, style: AnnotationStyle(), export: ExportOptions(format: .jpeg)),
         ]
     }
 }

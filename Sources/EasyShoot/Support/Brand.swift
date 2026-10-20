@@ -15,6 +15,40 @@ enum Brand {
     static let tagline = "Capture. Mark up. Share."
     static let taglineArabic = "التقط، وضّح، وشارك."
 
+    /// The app icon. Outside an app bundle (tests, `swift run`) macOS would show a generic folder,
+    /// so draw the same mark as Branding/AppIcon.svg instead.
+    @MainActor static var appIcon: NSImage {
+        if Bundle.main.object(forInfoDictionaryKey: "CFBundleIconFile") != nil { return NSApp.applicationIconImage }
+        return NSImage(size: NSSize(width: 256, height: 256), flipped: true) { rect in
+            let s = rect.width / 1024
+            func p(_ x: CGFloat, _ y: CGFloat) -> NSPoint { NSPoint(x: x * s, y: y * s) }
+            let body = NSBezierPath(roundedRect: CGRect(x: 100 * s, y: 100 * s, width: 824 * s, height: 824 * s),
+                                    xRadius: 185 * s, yRadius: 185 * s)
+            NSGradient(starting: NSColor(srgbRed: 0x0F / 255, green: 0x0F / 255, blue: 0x12 / 255, alpha: 1),
+                       ending: NSColor(srgbRed: 0x2E / 255, green: 0x2E / 255, blue: 0x35 / 255, alpha: 1))?
+                .draw(in: body, angle: -90)
+            let corners = NSBezierPath()
+            for (start, corner, end) in [((300, 428), (300, 300), (428, 300)), ((596, 300), (724, 300), (724, 428)),
+                                         ((724, 596), (724, 724), (596, 724)), ((428, 724), (300, 724), (300, 596))] {
+                let c = p(CGFloat(corner.0), CGFloat(corner.1))
+                corners.move(to: p(CGFloat(start.0), CGFloat(start.1)))
+                corners.curve(to: p(CGFloat(end.0), CGFloat(end.1)), controlPoint1: c, controlPoint2: c)
+            }
+            corners.lineWidth = 58 * s
+            corners.lineCapStyle = .round
+            signalNS.setStroke()
+            corners.stroke()
+            let cross = NSBezierPath()
+            cross.move(to: p(512, 436)); cross.line(to: p(512, 588))
+            cross.move(to: p(436, 512)); cross.line(to: p(588, 512))
+            cross.lineWidth = 28 * s
+            cross.lineCapStyle = .round
+            NSColor(srgbRed: 0xF4 / 255, green: 0xF4 / 255, blue: 0xF6 / 255, alpha: 1).setStroke()
+            cross.stroke()
+            return true
+        }
+    }
+
     /// Selection corners around a crosshair (Branding/MenuBarMark.svg), as a template image (adapts to light/dark menu bars).
     static func menuBarImage(size: CGFloat = 18) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in

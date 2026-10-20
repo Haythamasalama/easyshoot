@@ -76,7 +76,8 @@ final class ScrollingCaptureController: ObservableObject {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
-            guard let display = content.displays.first(where: { $0.displayID == displayID }) ?? content.displays.first else {
+            // No fallback to another display: capturing the wrong one would be worse than saying so.
+            guard let display = content.displays.first(where: { $0.displayID == displayID }) else {
                 status = L("Could not find the display.")
                 return
             }
@@ -113,6 +114,8 @@ final class ScrollingCaptureController: ObservableObject {
             handle(result)
         } catch {
             status = error.localizedDescription
+            // Don't keep scrolling the person's document while nothing is being recorded.
+            isAutoScrolling = false
         }
         guard !finished else { return }
         if isAutoScrolling {
@@ -175,7 +178,9 @@ final class ScrollingCaptureController: ObservableObject {
     }
 
     private func showPanel() {
-        let size = CGSize(width: 360, height: 130)
+        // The panel is as tall as its text needs; translations can run to three lines.
+        let content = FirstMouseHostingView(rootView: ScrollingPanelView(controller: self))
+        let size = CGSize(width: 360, height: max(130, content.fittingSize.height))
         let visible = screen.visibleFrame
         var origin = CGPoint(x: rect.midX - size.width / 2, y: rect.minY - size.height - 14)
         if origin.y < visible.minY {
@@ -194,9 +199,20 @@ final class ScrollingCaptureController: ObservableObject {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = FirstMouseHostingView(rootView: ScrollingPanelView(controller: self))
+        panel.contentView = content
         panel.orderFrontRegardless()
         self.panel = panel
+    }
+
+    /// Keeps the panel as tall as its content, which changes with the status message; the top edge stays put.
+    func fitPanel(height: CGFloat) {
+        guard let panel else { return }
+        let h = max(130, height.rounded(.up))
+        guard abs(panel.frame.height - h) > 0.5 else { return }
+        var frame = panel.frame
+        frame.origin.y += frame.height - h
+        frame.size.height = h
+        panel.setFrame(frame, display: true)
     }
 
     private func closeWindows() {
@@ -250,7 +266,10 @@ struct ScrollingPanelView: View {
             }
         }
         .padding(14)
-        .frame(width: 360, height: 130)
+        .frame(width: 360)
+        .fixedSize(horizontal: false, vertical: true)
         .glassSurface(cornerRadius: 16)
+        // Longer messages (like the Accessibility hint in German) need a taller panel.
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controller.fitPanel(height: $0) }
     }
 }

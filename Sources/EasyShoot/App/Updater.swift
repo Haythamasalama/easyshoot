@@ -10,7 +10,7 @@ final class Updater {
 
     private static let latestReleaseURL = URL(string: "https://api.github.com/repos/Haythamasalama/easyshoot/releases/latest")!
     private static let releasesPage = URL(string: "https://github.com/Haythamasalama/easyshoot/releases/latest")!
-    private static let assetName = "EasyShoot.zip"
+    nonisolated private static let assetName = "EasyShoot.zip"
     private static let checkInterval: TimeInterval = 24 * 60 * 60
 
     private let defaults = UserDefaults.standard
@@ -51,8 +51,9 @@ final class Updater {
         }
     }
 
-    private func checkIfDue() {
-        guard automaticChecks else { return }
+    func checkIfDue() {
+        // Never cover the first-run window (it checks again when it closes) or a capture in progress.
+        guard automaticChecks, !WelcomeWindowController.shared.isShowing, !CaptureCoordinator.shared.isBusy else { return }
         let last = defaults.double(forKey: "lastUpdateCheck")
         guard Date().timeIntervalSince1970 - last >= Self.checkInterval else { return }
         check(userInitiated: false)
@@ -67,7 +68,11 @@ final class Updater {
             do {
                 var request = URLRequest(url: Self.latestReleaseURL)
                 request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-                let (data, _) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                    // For example GitHub's rate limit; a clear message beats a JSON decoding error.
+                    throw UpdateError(errorDescription: HTTPURLResponse.localizedString(forStatusCode: http.statusCode))
+                }
                 let release = try JSONDecoder().decode(Release.self, from: data)
                 defaults.set(Date().timeIntervalSince1970, forKey: "lastUpdateCheck")
 
@@ -76,6 +81,11 @@ final class Updater {
                     return
                 }
                 if !userInitiated, defaults.string(forKey: "skippedVersion") == release.version { return }
+                if !userInitiated, CaptureCoordinator.shared.isBusy || WelcomeWindowController.shared.isShowing {
+                    // A capture started while we were online: offer it on the next hourly check instead.
+                    defaults.removeObject(forKey: "lastUpdateCheck")
+                    return
+                }
                 offer(release)
             } catch {
                 if userInitiated { showFailure(error) }
@@ -137,8 +147,9 @@ final class Updater {
 
     private func install(_ release: Release) {
         guard let download = release.download else { return }
-        isBusy = true
+        // Set inside the task: the check that offered this update clears the flag when it returns.
         Task { @MainActor in
+            isBusy = true
             defer { isBusy = false }
             do {
                 let staged = try await Self.downloadAndUnpack(download)
@@ -165,7 +176,7 @@ final class Updater {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("EasyShootUpdate-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        try run("/usr/bin/ditto", ["-x", "-k", zip.path, folder.path])
+        try await run("/usr/bin/ditto", ["-x", "-k", zip.path, folder.path])
         let app = folder.appendingPathComponent("EasyShoot.app")
         guard Bundle(url: app)?.bundleIdentifier == Bundle.main.bundleIdentifier else {
             throw UpdateError(errorDescription: L("The download didn't contain EasyShoot."))
@@ -180,9 +191,14 @@ final class Updater {
         guard FileManager.default.isWritableFile(atPath: current.deletingLastPathComponent().path) else {
             throw UpdateError(errorDescription: L("EasyShoot can't write to %@. Move it to your Applications folder and try again.", current.deletingLastPathComponent().path))
         }
+        // The old app is only deleted once the new one is in place; if the move fails, the old one comes back.
         let script = """
         while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
-        rm -rf "$2" && mv "$3" "$2" && xattr -dr com.apple.quarantine "$2" 2>/dev/null
+        rm -rf "$2.old"
+        if mv "$2" "$2.old"; then
+          if mv "$3" "$2"; then rm -rf "$2.old"; else mv "$2.old" "$2"; fi
+        fi
+        xattr -dr com.apple.quarantine "$2" 2>/dev/null
         open "$2"
         """
         let process = Process()
@@ -192,13 +208,22 @@ final class Updater {
         NSApp.terminate(nil)
     }
 
-    private static func run(_ tool: String, _ arguments: [String]) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: tool)
-        process.arguments = arguments
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
+    /// Runs a tool without blocking the main thread while it works.
+    private static func run(_ tool: String, _ arguments: [String]) async throws {
+        let status: Int32 = try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool)
+            process.arguments = arguments
+            process.terminationHandler = { finished in
+                continuation.resume(returning: finished.terminationStatus)
+            }
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+        guard status == 0 else {
             throw UpdateError(errorDescription: L("Couldn't unpack the update."))
         }
     }

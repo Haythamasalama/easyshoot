@@ -33,6 +33,8 @@ final class EditorModel: ObservableObject {
     private var toolBeforeCrop: Tool = .arrow
     private var pixelatedCache: CGImage?
     private var pixelatedComputed = false
+    private var displayCache: CGImage?
+    private var displayComputed = false
     private var statusClearTask: Task<Void, Never>?
     private var lastUsedSink: AnyCancellable?
 
@@ -92,6 +94,16 @@ final class EditorModel: ObservableObject {
     }
 
     var needsPixelated: Bool { doc.annotations.contains { $0.kind == .pixelate } }
+
+    /// What the canvas draws: the screenshot itself, or a smaller copy when it is huge (a long scrolling
+    /// capture), so redraws stay fast. 8192 px leaves every screen, even 6K, untouched. Export uses the original.
+    var displayImage: CGImage? {
+        if !displayComputed {
+            displayCache = Renderer.downsample(doc.image, maxSide: 8192)
+            displayComputed = true
+        }
+        return displayCache
+    }
 
     // MARK: Style
 
@@ -250,14 +262,14 @@ final class EditorModel: ObservableObject {
 
     var outputSize: CGSize {
         let layout = Renderer.layout(for: doc)
-        let f = export.factor(canvasWidth: layout.canvasSize.width)
+        let f = Renderer.safeFactor(export.factor(canvasWidth: layout.canvasSize.width), canvas: layout.canvasSize)
         return CGSize(width: (layout.canvasSize.width * f).rounded(), height: (layout.canvasSize.height * f).rounded())
     }
 
     private func renderForExport() -> (image: CGImage, dpiScale: CGFloat)? {
         commitPendingEdits?()
         let layout = Renderer.layout(for: doc)
-        let f = export.factor(canvasWidth: layout.canvasSize.width)
+        let f = Renderer.safeFactor(export.factor(canvasWidth: layout.canvasSize.width), canvas: layout.canvasSize)
         guard let image = Renderer.renderImage(doc, factor: f, pixelated: needsPixelated ? pixelated : nil,
                                                opaque: export.format == .jpeg) else { return nil }
         return (image, doc.scale * f)
@@ -275,7 +287,9 @@ final class EditorModel: ObservableObject {
             let url = try ExportService.save(r.image, options: export, dpiScale: r.dpiScale, to: ExportService.defaultSaveURL(for: export.format))
             flash(L("Saved %@", url.lastPathComponent))
         } catch {
-            flash(L("Save failed: %@", error.localizedDescription))
+            // A failed save must never look like a success: say what went wrong and keep it on screen.
+            let alert = NSAlert(error: error)
+            if let window { alert.beginSheetModal(for: window) } else { alert.runModal() }
         }
     }
 

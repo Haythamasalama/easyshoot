@@ -67,8 +67,9 @@ struct KeyCombo: Codable, Hashable {
         } else {
             return nil
         }
-        // Plain letters would break typing everywhere: require ⌘, ⌥ or ⌃ unless it's a function key.
-        let hasStrongModifier = !flags.intersection([.command, .option, .control]).isEmpty
+        // Plain letters would break typing everywhere: require ⌘ or ⌃ unless it's a function key.
+        // (macOS 15 refuses global shortcuts that use only ⌥ or ⌥⇧.)
+        let hasStrongModifier = !flags.intersection([.command, .control]).isEmpty
         guard hasStrongModifier || Self.functionKeys[code] != nil else { return nil }
         self.init(keyCode: UInt32(code), carbonModifiers: Self.carbonFlags(from: flags), key: name)
     }
@@ -126,6 +127,8 @@ final class ShortcutStore: ObservableObject {
     @Published private(set) var combos: [HotKeyAction: KeyCombo]
     /// Set while a recorder is listening, so pressing an existing shortcut doesn't trigger a capture.
     @Published var isRecording = false { didSet { onChange?() } }
+    /// The one shortcut being recorded; starting another recorder stops this one.
+    @Published var recordingAction: HotKeyAction?
 
     var onChange: (() -> Void)?
 

@@ -91,9 +91,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !shortcuts.isRecording else { return }
         for action in HotKeyAction.allCases {
             guard let combo = shortcuts.combo(for: action) else { continue }
-            hotKeys.register(keyCode: Int(combo.keyCode), modifiers: Int(combo.carbonModifiers)) { [weak self] in
+            let registered = hotKeys.register(keyCode: Int(combo.keyCode), modifiers: Int(combo.carbonModifiers)) { [weak self] in
                 self?.perform(action)
             }
+            if !registered { NSLog("EasyShoot: couldn't register %@ for %@", combo.displayString, action.rawValue) }
         }
     }
 
@@ -122,16 +123,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openSettings(_ sender: Any?) {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 760, height: 540),
-                                  styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
             window.title = L("Settings")
             window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
+            window.contentMinSize = CGSize(width: 720, height: 500)
+            // Like System Settings: a form doesn't get better at full screen on a 5K display.
+            window.collectionBehavior.insert(.fullScreenNone)
             window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared, shortcuts: .shared))
             window.center()
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
                 MainActor.assumeIsolated {
+                    ShortcutStore.shared.recordingAction = nil
                     ShortcutStore.shared.isRecording = false
                     AppActivation.windowClosed()
                 }

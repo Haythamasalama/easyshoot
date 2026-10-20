@@ -5,10 +5,20 @@ import AppKit
 final class RegionSelector {
     private var windows: [NSWindow] = []
     private var completion: ((CGRect?, NSScreen?) -> Void)?
+    private var screenObserver: NSObjectProtocol?
 
     /// Calls back with a rect in global Cocoa coordinates (bottom-left origin) and its screen, or nil if cancelled.
     func begin(message: String, completion: @escaping (CGRect?, NSScreen?) -> Void) {
+        guard !NSScreen.screens.isEmpty else {
+            completion(nil, nil)
+            return
+        }
         self.completion = completion
+        // A display plugged in or out mid-selection would leave a stale screen: cancel instead.
+        screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
+                                                                object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.finish(nil, nil) }
+        }
         for screen in NSScreen.screens {
             let window = SelectionWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
@@ -44,6 +54,8 @@ final class RegionSelector {
     }
 
     private func finish(_ rect: CGRect?, _ screen: NSScreen?) {
+        if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
+        screenObserver = nil
         windows.forEach { $0.orderOut(nil) }
         windows.removeAll()
         let callback = completion
@@ -85,7 +97,7 @@ private final class SelectionView: NSView {
             let border = NSBezierPath(rect: r.insetBy(dx: -0.5, dy: -0.5))
             border.lineWidth = 1
             border.stroke()
-            drawLabel("\(Int(r.width)) × \(Int(r.height))", at: CGPoint(x: r.minX, y: r.maxY + 6))
+            drawLabel("\(Int(r.width)) × \(Int(r.height))", above: r)
         } else {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 18, weight: .semibold),
@@ -101,28 +113,44 @@ private final class SelectionView: NSView {
         }
     }
 
-    private func drawLabel(_ text: String, at point: CGPoint) {
+    /// The size label sits above the selection, or inside it when there's no room above (dragging from the top edge).
+    private func drawLabel(_ text: String, above r: CGRect) {
         let str = NSAttributedString(string: text, attributes: [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
             .foregroundColor: NSColor.white,
         ])
         let size = str.size()
-        let box = CGRect(x: point.x, y: point.y, width: size.width + 10, height: size.height + 4)
+        let boxSize = CGSize(width: size.width + 10, height: size.height + 4)
+        var origin = CGPoint(x: r.minX, y: r.maxY + 6)
+        if origin.y + boxSize.height > bounds.maxY { origin.y = r.maxY - boxSize.height - 6 }
+        origin.x = min(max(origin.x, bounds.minX + 4), bounds.maxX - boxSize.width - 4)
+        let box = CGRect(origin: origin, size: boxSize)
         NSColor.black.withAlphaComponent(0.7).setFill()
         NSBezierPath(roundedRect: box, xRadius: 4, yRadius: 4).fill()
         str.draw(at: CGPoint(x: box.minX + 5, y: box.minY + 2))
     }
 
-    override func mouseDown(with event: NSEvent) {
+    /// The pointer position, kept on this view's screen: the selection can't spill onto the next display.
+    private func point(_ event: NSEvent) -> CGPoint {
         let p = convert(event.locationInWindow, from: nil)
+        return CGPoint(x: min(max(p.x, bounds.minX), bounds.maxX), y: min(max(p.y, bounds.minY), bounds.maxY))
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let p = point(event)
         start = p
         current = p
         needsDisplay = true
     }
 
     override func mouseDragged(with event: NSEvent) {
-        current = convert(event.locationInWindow, from: nil)
+        current = point(event)
         needsDisplay = true
+    }
+
+    /// A right-click cancels too, in case Esc can't reach the overlay.
+    override func rightMouseDown(with event: NSEvent) {
+        onComplete?(nil)
     }
 
     override func mouseUp(with event: NSEvent) {

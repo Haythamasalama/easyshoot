@@ -32,6 +32,14 @@ final class PresetStore: ObservableObject {
             presets = decoded
         } else {
             presets = Preset.builtIns
+            // A file this version can't read (say, from a newer version) is kept aside, never overwritten.
+            let url = Self.fileURL
+            if FileManager.default.fileExists(atPath: url.path) {
+                let backup = url.appendingPathExtension("bak")
+                try? FileManager.default.removeItem(at: backup)
+                try? FileManager.default.moveItem(at: url, to: backup)
+                NSLog("EasyShoot: couldn't read presets.json; kept it as presets.json.bak")
+            }
         }
         if let raw = UserDefaults.standard.string(forKey: Self.defaultKey) {
             defaultPresetID = UUID(uuidString: raw)

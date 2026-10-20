@@ -3,35 +3,65 @@ import SwiftUI
 struct EditorView: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var presets: PresetStore
+    /// Hidden on small screens to give the canvas the whole window.
+    @AppStorage("showInspector") private var showInspector = true
+
+    private let inspectorTab: InspectorView.Tab
+
+    /// The inspector opens at this width. People can drag its edge within `inspectorWidthRange`;
+    /// its content adapts to the column, never the other way round.
+    static let inspectorWidth: CGFloat = 290
+    /// Narrower squeezes the labels; wider takes too much from the canvas on a 13-inch screen.
+    static let inspectorWidthRange: ClosedRange<CGFloat> = 260...440
+    static let canvasMinWidth: CGFloat = 400
+
+    init(model: EditorModel, presets: PresetStore, inspectorTab: InspectorView.Tab = .style) {
+        self.model = model
+        self.presets = presets
+        self.inspectorTab = inspectorTab
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ZStack(alignment: .top) {
-                    CanvasRepresentable(model: model)
-                        .frame(minWidth: 480, minHeight: 360)
-                    VStack(spacing: 8) {
-                        ViewThatFits(in: .horizontal) {
-                            FloatingToolbar(model: model)
-                            FloatingToolbar(model: model, compact: true)
-                        }
-                        if model.isCropping {
-                            CropBar(model: model)
-                        } else if model.showsTextBar {
-                            TextBar(model: model)
-                        }
+            ZStack(alignment: .top) {
+                CanvasRepresentable(model: model)
+                    .frame(minWidth: Self.canvasMinWidth, minHeight: 320)
+                    .layoutProbe("canvas")
+                VStack(spacing: 8) {
+                    ViewThatFits(in: .horizontal) {
+                        FloatingToolbar(model: model)
+                        FloatingToolbar(model: model, compact: true)
+                        FloatingToolbar(model: model, compact: true, foldsShapes: true)
                     }
-                    .padding(.top, 12)
-                    .padding(.horizontal, 12)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.showsTextBar)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
+                    .layoutProbe("toolbar")
+                    if model.isCropping {
+                        CropBar(model: model)
+                    } else if model.showsTextBar {
+                        ViewThatFits(in: .horizontal) {
+                            TextBar(model: model)
+                            TextBar(model: model, compact: true)
+                        }
+                        .layoutProbe("textBar")
+                    }
                 }
-                Divider()
-                InspectorView(model: model)
-                    .frame(width: 290)
+                .padding(.top, 12)
+                .padding(.horizontal, 12)
+                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.showsTextBar)
+                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: model.isCropping)
+            }
+            // The system inspector column: drag its edge to resize it (with the column-resize
+            // pointer) within safe limits. It follows AppKit's layout direction, so it moves to the
+            // left when the app runs in Arabic.
+            .inspector(isPresented: $showInspector) {
+                InspectorView(model: model, tab: inspectorTab)
+                    .layoutProbe("inspector")
+                    .inspectorColumnWidth(min: Self.inspectorWidthRange.lowerBound,
+                                          ideal: Self.inspectorWidth,
+                                          max: Self.inspectorWidthRange.upperBound)
             }
             Divider()
-            EditorBottomBar(model: model, presets: presets)
+            EditorBottomBar(model: model, presets: presets, showInspector: $showInspector)
+                .layoutProbe("bottomBar")
         }
     }
 }
@@ -57,36 +87,38 @@ struct FloatingToolbar: View {
     @ObservedObject var model: EditorModel
     /// Folds the colour row into one swatch with a popover, for narrow windows.
     var compact = false
+    /// Also folds the five shapes into one menu, for the narrowest canvas (a wide inspector in a small window).
+    var foldsShapes = false
     @State private var showColors = false
 
-    private let groups: [[Tool]] = [
+    private static let shapes: [Tool] = [.arrow, .line, .rectangle, .filledRectangle, .ellipse]
+    private static let groups: [[Tool]] = [
         [.select, .crop],
-        [.arrow, .line, .rectangle, .filledRectangle, .ellipse],
+        FloatingToolbar.shapes,
         [.text, .counter],
         [.highlighter, .pen, .pixelate],
     ]
 
+    private var spacing: CGFloat { compact ? 2 : 4 }
+    private var toolWidth: CGFloat { compact ? 27 : 32 }
+    private var dividerPadding: CGFloat { compact ? 1 : 3 }
+
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(groups.indices, id: \.self) { index in
-                if index > 0 {
-                    Divider().frame(height: 18).padding(.horizontal, 3)
-                }
-                ForEach(groups[index]) { tool in
-                    Button {
-                        model.tool = tool
-                    } label: {
-                        Image(systemName: tool.symbol)
-                            .font(.system(size: 14, weight: .medium))
-                            .frame(width: 32, height: 28)
-                            .contentShape(Rectangle())
+        HStack(spacing: spacing) {
+            ForEach(Self.groups, id: \.self) { group in
+                HStack(spacing: spacing) {
+                    if group != Self.groups.first {
+                        divider
                     }
-                    .buttonStyle(ToolButtonStyle(selected: model.tool == tool))
-                    .help("\(tool.title)  \(String(tool.shortcut).uppercased())")
+                    if foldsShapes && group == Self.shapes {
+                        shapesMenu
+                    } else {
+                        ForEach(group) { tool in toolButton(tool) }
+                    }
                 }
             }
 
-            Divider().frame(height: 18).padding(.horizontal, 3)
+            divider
 
             if compact {
                 Button { showColors.toggle() } label: {
@@ -106,27 +138,81 @@ struct FloatingToolbar: View {
                 ColorDots(model: model)
             }
 
-            Divider().frame(height: 18).padding(.horizontal, 3)
+            divider
 
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 26, height: 28) }
                 .buttonStyle(ToolButtonStyle(selected: false))
                 .disabled(!model.canUndo)
                 .help(L("Undo") + "  ⌘Z")
+                .accessibilityLabel(L("Undo"))
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward").frame(width: 26, height: 28) }
                 .buttonStyle(ToolButtonStyle(selected: false))
                 .disabled(!model.canRedo)
                 .help(L("Redo") + "  ⇧⌘Z")
+                .accessibilityLabel(L("Redo"))
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, compact ? 6 : 8)
         .padding(.vertical, 6)
         .glassSurface(cornerRadius: 14)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private var divider: some View {
+        Divider().frame(height: 18).padding(.horizontal, dividerPadding)
+    }
+
+    private func toolButton(_ tool: Tool) -> some View {
+        Button {
+            model.tool = tool
+        } label: {
+            Image(systemName: tool.symbol)
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: toolWidth, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(ToolButtonStyle(selected: model.tool == tool))
+        .help("\(tool.title)  \(String(tool.shortcut).uppercased())")
+        .accessibilityLabel(tool.title)
+        .accessibilityAddTraits(model.tool == tool ? .isSelected : [])
+    }
+
+    /// One button for all five shapes: it shows the current shape (or the arrow) and opens a menu of the others.
+    private var shapesMenu: some View {
+        let isShape = Self.shapes.contains(model.tool)
+        return Menu {
+            ForEach(Self.shapes) { tool in
+                let title = tool.title + "  " + String(tool.shortcut).uppercased()
+                Button {
+                    model.tool = tool
+                } label: {
+                    Label(title, systemImage: tool.symbol)
+                }
+            }
+        } label: {
+            Image(systemName: (isShape ? model.tool : .arrow).symbol)
+                .font(.system(size: 14, weight: .medium))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .fixedSize()
+        .padding(.horizontal, 4)
+        .frame(height: 28)
+        .foregroundStyle(isShape ? Brand.signal : Color.primary)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(isShape ? Brand.signal.opacity(0.16) : .clear))
+        .help(L("Shapes"))
+        .accessibilityLabel(L("Shapes"))
     }
 }
 
 struct ColorDots: View {
     @ObservedObject var model: EditorModel
     @State private var showPicker = false
+
+    private static let palette: [RGBAColor] = [.red, .orange, .yellow, .green, .blue, .purple, .black, .white]
+    private static let names: [RGBAColor: String] = [
+        .red: L("Red"), .orange: L("Orange"), .yellow: L("Yellow"), .green: L("Green"),
+        .blue: L("Blue"), .purple: L("Purple"), .black: L("Black"), .white: L("White"),
+    ]
 
     private var colorBinding: Binding<Color> {
         Binding(get: { model.activeStyle.color.color },
@@ -139,7 +225,8 @@ struct ColorDots: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach([RGBAColor.red, .orange, .yellow, .green, .blue, .purple, .black, .white], id: \.self) { color in
+            ForEach(Self.palette, id: \.self) { color in
+                let name = Self.names[color] ?? L("Color")
                 Button {
                     var style = model.activeStyle
                     style.color = color
@@ -153,8 +240,11 @@ struct ColorDots: View {
                         .overlay(Circle().strokeBorder(Color.primary.opacity(0.85), lineWidth: model.activeStyle.color == color ? 2 : 0))
                 }
                 .buttonStyle(.plain)
+                .help(name)
+                .accessibilityLabel(name)
+                .accessibilityAddTraits(model.activeStyle.color == color ? .isSelected : [])
             }
-            ColorWellButton(color: colorBinding, rainbow: true, size: 15)
+            ColorWellButton(color: colorBinding, rainbow: true, size: 15, label: L("More colors"))
                 .help(L("More colors"))
         }
     }
@@ -165,6 +255,8 @@ struct ColorDots: View {
 /// Appears for the text tool or a selected text: font, size and background, one click away.
 struct TextBar: View {
     @ObservedObject var model: EditorModel
+    /// Drops the direction picker and narrows the font menu, for narrow windows.
+    var compact = false
 
     private var style: Binding<AnnotationStyle> {
         Binding(get: { model.activeStyle }, set: { model.setActiveStyle($0) })
@@ -173,7 +265,7 @@ struct TextBar: View {
     var body: some View {
         HStack(spacing: 10) {
             FontPickerButton(fontName: style.fontName)
-                .frame(width: 150)
+                .frame(width: compact ? 110 : 150)
 
             HStack(spacing: 0) {
                 Button { model.adjustFontSize(by: -2) } label: {
@@ -192,23 +284,25 @@ struct TextBar: View {
             }
             .buttonStyle(ToolButtonStyle(selected: false))
 
-            Picker("", selection: style.textStyle) {
-                Image(systemName: "character").help(L("Plain")).tag(TextStyleKind.plain)
-                Image(systemName: "character.textbox").help(L("Bubble")).tag(TextStyleKind.background)
-                Image(systemName: "a.circle").help(L("Outline")).tag(TextStyleKind.outline)
+            Picker(L("Text style"), selection: style.textStyle) {
+                Image(systemName: "character").help(L("Plain")).accessibilityLabel(L("Plain")).tag(TextStyleKind.plain)
+                Image(systemName: "character.textbox").help(L("Bubble")).accessibilityLabel(L("Bubble")).tag(TextStyleKind.background)
+                Image(systemName: "a.circle").help(L("Outline")).accessibilityLabel(L("Outline")).tag(TextStyleKind.outline)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 110)
 
-            Picker("", selection: style.textDirection) {
-                Text(L("Auto")).tag(TextDirection.auto)
-                Image(systemName: "text.alignleft").help(L("Left to right")).tag(TextDirection.ltr)
-                Image(systemName: "text.alignright").help(L("Right to left")).tag(TextDirection.rtl)
+            if !compact {
+                Picker(L("Direction"), selection: style.textDirection) {
+                    Text(L("Auto")).tag(TextDirection.auto)
+                    Image(systemName: "text.alignleft").help(L("Left to right")).accessibilityLabel(L("Left to right")).tag(TextDirection.ltr)
+                    Image(systemName: "text.alignright").help(L("Right to left")).accessibilityLabel(L("Right to left")).tag(TextDirection.rtl)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 120)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -223,18 +317,17 @@ struct CropBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "crop").foregroundStyle(Brand.signal)
-            Menu(L("Aspect")) {
-                Button(L("Freeform")) {}
-                ForEach(AspectRatio.allCases.filter { $0 != .auto }) { ratio in
-                    Button(ratio.title) { model.setCropAspect(ratio.value) }
-                }
+            Image(systemName: "crop").foregroundStyle(Brand.signal).accessibilityHidden(true)
+            // Long translations of "Aspect" and "Reset" turn into icons when the canvas is narrow.
+            ViewThatFits(in: .horizontal) {
+                cropOptions(iconsOnly: false)
+                cropOptions(iconsOnly: true)
             }
-            .fixedSize()
-            Button(L("Reset")) { model.resetCropDraft() }
             Button(L("Cancel")) { model.cancelCrop() }
+                .help(L("Cancel") + "  esc")
             Button(L("Apply")) { model.applyCrop() }
                 .primaryButtonStyle()
+                .help(L("Apply") + "  ↩")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -242,13 +335,39 @@ struct CropBar: View {
         .shadow(color: .black.opacity(0.1), radius: 10, y: 3)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
+
+    private func cropOptions(iconsOnly: Bool) -> some View {
+        HStack(spacing: 8) {
+            Menu {
+                ForEach(AspectRatio.allCases.filter { $0 != .auto }) { ratio in
+                    Button(ratio.title) { model.setCropAspect(ratio.value) }
+                }
+            } label: {
+                if iconsOnly { Image(systemName: "aspectratio") } else { Text(L("Aspect")) }
+            }
+            .fixedSize()
+            .help(L("Aspect"))
+            .accessibilityLabel(L("Aspect"))
+            Button { model.resetCropDraft() } label: {
+                if iconsOnly { Image(systemName: "arrow.counterclockwise") } else { Text(L("Reset")) }
+            }
+            .help(L("Reset"))
+            .accessibilityLabel(L("Reset"))
+        }
+    }
 }
 
 // MARK: - Inspector
 
 struct InspectorView: View {
     @ObservedObject var model: EditorModel
-    @State private var tab: Tab = .style
+    /// Seeds the first tab once; after that the tab is the inspector's own state.
+    @State private var tab: Tab
+
+    init(model: EditorModel, tab: Tab = .style) {
+        self.model = model
+        _tab = State(initialValue: tab)
+    }
 
     enum Tab: CaseIterable {
         case style, background, export
@@ -265,8 +384,11 @@ struct InspectorView: View {
     var body: some View {
         VStack(spacing: 0) {
             FittingSegments(selection: $tab, options: Tab.allCases.map { ($0, $0.title) })
+                .layoutProbe("inspectorTabs")
                 .padding(12)
 
+            // The content takes the scroll view's width (the column minus an always-shown scroll bar),
+            // whatever the person dragged the column to; clipping keeps any row inside it.
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
                     switch tab {
@@ -275,12 +397,13 @@ struct InspectorView: View {
                     case .export: ExportInspector(model: model)
                     }
                 }
-                .padding(.horizontal, 12)
                 .padding(.bottom, 16)
-                .containerRelativeFrame(.horizontal, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutProbe("inspectorContent")
+                .padding(.horizontal, 12)
             }
         }
-        .background(.background.secondary)
+        .clipped()
     }
 }
 
@@ -320,8 +443,10 @@ struct LabeledSlider: View {
                 Text(format(value)).monospacedDigit().foregroundStyle(.secondary).fixedSize()
             }
             .font(.callout)
-            Slider(value: $value, in: range)
+            Slider(value: $value, in: range) { Text(title) }
+                .labelsHidden()
                 .controlSize(.small)
+                .accessibilityValue(format(value))
         }
     }
 }
@@ -347,7 +472,7 @@ struct ColorRow: View {
         HStack {
             Text(title)
             Spacer()
-            ColorWellButton(color: $color, supportsOpacity: false, size: 22)
+            ColorWellButton(color: $color, supportsOpacity: false, size: 22, label: title)
         }
     }
 }
@@ -360,11 +485,11 @@ struct FittingSegments<Value: Hashable>: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(options.indices, id: \.self) { index in
-                let option = options[index]
-                let selected = option.0 == selection
-                Button { selection = option.0 } label: {
-                    Text(option.1)
+            ForEach(options.map { $0.0 }, id: \.self) { value in
+                let title = options.first { $0.0 == value }?.1 ?? ""
+                let selected = value == selection
+                Button { selection = value } label: {
+                    Text(title)
                         .font(.callout.weight(selected ? .semibold : .regular))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -394,11 +519,12 @@ struct ColorWellButton: View {
     var supportsOpacity = true
     var rainbow = false
     var size: CGFloat = 20
-    @StateObject private var bridge = ColorPanelBridge()
+    /// What VoiceOver reads for this well.
+    var label = L("Color")
 
     var body: some View {
         Button {
-            bridge.open(color: NSColor(color), showsAlpha: supportsOpacity) { color = Color(nsColor: $0) }
+            ColorPanelBridge.shared.open(color: NSColor(color), showsAlpha: supportsOpacity) { color = Color(nsColor: $0) }
         } label: {
             Circle()
                 .fill(rainbow
@@ -410,12 +536,23 @@ struct ColorWellButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }
 
+/// The target of the app-wide colour panel. It is a single object that lives as long as the app, because
+/// the panel outlives the colour wells that open it (a tab switch or a closed popover removes them).
 @MainActor
-final class ColorPanelBridge: NSObject, ObservableObject {
+final class ColorPanelBridge: NSObject {
+    static let shared = ColorPanelBridge()
     private var onChange: ((NSColor) -> Void)?
+
+    /// Stops editing (for example when the editor window closes) and puts the panel away.
+    func detach() {
+        guard onChange != nil else { return }
+        onChange = nil
+        if NSColorPanel.sharedColorPanelExists { NSColorPanel.shared.orderOut(nil) }
+    }
 
     func open(color: NSColor, showsAlpha: Bool, onChange: @escaping (NSColor) -> Void) {
         let panel = NSColorPanel.shared
@@ -455,9 +592,11 @@ struct StyleInspector: View {
                 Button { model.bringSelectedToFront() } label: { Image(systemName: "square.3.layers.3d.top.filled") }
                     .buttonStyle(.borderless)
                     .help(L("Bring to front"))
+                    .accessibilityLabel(L("Bring to front"))
                 Button(role: .destructive) { model.deleteSelected() } label: { Image(systemName: "trash") }
                     .buttonStyle(.borderless)
                     .help(L("Delete") + "  ⌫")
+                    .accessibilityLabel(L("Delete"))
             }
             .padding(.horizontal, 4)
         }
@@ -491,7 +630,8 @@ struct StyleInspector: View {
                     Text("\(Int(model.activeStyle.fontSize))").monospacedDigit()
                 }
             }
-            Slider(value: style.fontSize, in: 8...160)
+            Slider(value: style.fontSize, in: 8...200) { Text(L("Size")) }
+                .labelsHidden()
                 .controlSize(.small)
             LabeledRow(title: L("Background")) {
                 FittingSegments(selection: style.textStyle, options: TextStyleKind.allCases.map { ($0, $0.title) })
@@ -539,18 +679,31 @@ struct BackgroundInspector: View {
 
         Group {
             InspectorSection(title: L("Fill")) {
-                FittingSegments(selection: bg.fill, options: BackgroundFill.allCases.map { ($0, $0.title) })
+                // A pop-up menu fits any inspector width and any translation, unlike four segments.
+                Picker(L("Fill"), selection: bg.fill) {
+                    ForEach(BackgroundFill.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 switch model.doc.background.fill {
                 case .gradient:
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5), spacing: 6) {
-                        ForEach(GradientPreset.all.indices, id: \.self) { i in
-                            GradientSwatch(colors: GradientPreset.all[i].colors, angle: GradientPreset.all[i].angle)
-                                .frame(height: 32)
-                                .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .strokeBorder(Color.primary.opacity(0.85), lineWidth: model.doc.background.gradientIndex == i ? 2.5 : 0))
-                                .onTapGesture { model.doc.background.gradientIndex = i }
-                                .help(GradientPreset.all[i].name)
+                        ForEach(GradientPreset.all) { preset in
+                            let index = GradientPreset.all.firstIndex { $0.id == preset.id } ?? 0
+                            let selected = model.doc.background.gradientIndex == index
+                            Button {
+                                model.doc.background.gradientIndex = index
+                            } label: {
+                                GradientSwatch(colors: preset.colors, angle: preset.angle)
+                                    .frame(height: 32)
+                                    .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .strokeBorder(Color.primary.opacity(0.85), lineWidth: selected ? 2.5 : 0))
+                            }
+                            .buttonStyle(.plain)
+                            .help(preset.name)
+                            .accessibilityLabel(preset.name)
+                            .accessibilityAddTraits(selected ? .isSelected : [])
                         }
                     }
                 case .solid:
@@ -585,18 +738,24 @@ struct BackgroundInspector: View {
                             GridRow {
                                 ForEach(0..<3, id: \.self) { col in
                                     let alignment = ContentAlignment.allCases[row * 3 + col]
+                                    let selected = model.doc.background.alignment == alignment
                                     Button {
                                         model.doc.background.alignment = alignment
                                     } label: {
                                         RoundedRectangle(cornerRadius: 3)
-                                            .fill(model.doc.background.alignment == alignment ? Color.accentColor : Color.secondary.opacity(0.25))
+                                            .fill(selected ? Color.accentColor : Color.secondary.opacity(0.25))
                                             .frame(width: 22, height: 15)
                                     }
                                     .buttonStyle(.plain)
+                                    .help(alignment.title)
+                                    .accessibilityLabel(alignment.title)
+                                    .accessibilityAddTraits(selected ? .isSelected : [])
                                 }
                             }
                         }
                     }
+                    // A picture of the image's position: left stays left, also in right-to-left languages.
+                    .environment(\.layoutDirection, .leftToRight)
                 }
             }
         }
@@ -631,7 +790,7 @@ struct ExportInspector: View {
             case .width:
                 HStack {
                     Text(L("Width"))
-                    TextField("", value: $model.export.width, format: .number)
+                    TextField(L("Width"), value: $model.export.width, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 90)
                     Text("px").foregroundStyle(.secondary)
@@ -658,6 +817,7 @@ struct ExportInspector: View {
 struct EditorBottomBar: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var presets: PresetStore
+    @Binding var showInspector: Bool
     @State private var showingSavePreset = false
     @State private var presetName = ""
 
@@ -681,10 +841,31 @@ struct EditorBottomBar: View {
                 Label(message, systemImage: "checkmark.circle.fill")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
             }
 
-            Spacer()
+            Spacer(minLength: 8)
+
+            if model.statusMessage == nil {
+                let size = model.outputSize
+                Text("\(Int(size.width)) × \(Int(size.height)) px · \(model.export.format.title)")
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help(L("Size and format of the exported image"))
+            }
+
+            Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
+                Image(systemName: "sidebar.trailing")
+                    .frame(width: 22, height: 18)
+            }
+            .secondaryButtonStyle()
+            .keyboardShortcut("i", modifiers: [.command, .option])
+            .help((showInspector ? L("Hide Inspector") : L("Show Inspector")) + "  ⌥⌘I")
+            .accessibilityLabel(showInspector ? L("Hide Inspector") : L("Show Inspector"))
 
             Button { model.copyToClipboard() } label: { Label(L("Copy"), systemImage: "doc.on.doc") }
                 .keyboardShortcut("c", modifiers: [.command, .shift])

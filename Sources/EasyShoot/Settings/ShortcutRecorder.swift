@@ -45,10 +45,18 @@ struct ShortcutRecorder: View {
                 }
                 .buttonStyle(.plain)
                 .help(L("Clear shortcut"))
+                .accessibilityLabel(L("Clear shortcut"))
             }
         }
         .animation(.easeOut(duration: 0.15), value: hint)
         .onDisappear(perform: stop)
+        // Another recorder started, or the Settings window closed (which may not send onDisappear).
+        .onChange(of: store.recordingAction) { _, active in
+            if recording, active != action { stop() }
+        }
+        .onChange(of: store.isRecording) { _, isRecording in
+            if recording, !isRecording { stop() }
+        }
     }
 
     private var label: String {
@@ -63,6 +71,7 @@ struct ShortcutRecorder: View {
     private func start() {
         recording = true
         hint = nil
+        store.recordingAction = action
         store.isRecording = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             handle(event)
@@ -73,8 +82,11 @@ struct ShortcutRecorder: View {
     private func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        if recording {
-            recording = false
+        guard recording else { return }
+        recording = false
+        // Leave the store alone if another recorder has already taken over.
+        if store.recordingAction == action || store.recordingAction == nil {
+            store.recordingAction = nil
             store.isRecording = false
         }
     }
@@ -91,7 +103,7 @@ struct ShortcutRecorder: View {
             return
         }
         guard let combo = KeyCombo(event: event) else {
-            hint = L("Use ⌘, ⌥ or ⌃ with a key")
+            hint = L("Use ⌘ or ⌃ with a key")
             NSSound.beep()
             return
         }

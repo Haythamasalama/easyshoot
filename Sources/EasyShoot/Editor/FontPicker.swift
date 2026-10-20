@@ -43,6 +43,7 @@ struct FontPickerView: View {
     @State private var tab: Tab = .mac
     @State private var query = ""
     @State private var googleName = ""
+    @FocusState private var searchFocused: Bool
 
     enum Tab: Hashable { case mac, google }
 
@@ -54,7 +55,7 @@ struct FontPickerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
+            Picker(L("Font"), selection: $tab) {
                 Text(L("On This Mac")).tag(Tab.mac)
                 Text(L("Google Fonts")).tag(Tab.google)
             }
@@ -66,9 +67,12 @@ struct FontPickerView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField(L("Search fonts"), text: $query)
                     .textFieldStyle(.plain)
+                    .focused($searchFocused)
                 if !query.isEmpty {
                     Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
                         .buttonStyle(.plain)
+                        .help(L("Clear search"))
+                        .accessibilityLabel(L("Clear search"))
                 }
             }
             .padding(8)
@@ -83,6 +87,8 @@ struct FontPickerView: View {
             }
         }
         .frame(width: 320, height: 440)
+        // Type to search straight away when the picker opens.
+        .onAppear { searchFocused = true }
     }
 
     // MARK: Installed
