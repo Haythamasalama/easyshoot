@@ -1,3 +1,5 @@
+<!-- Title: type(scope): summary, for example "feat(editor): add a blur tool". See CONTRIBUTING.md#pull-request-titles. -->
+
 ## What does this change?
 
 <!-- One or two sentences. Link the issue it fixes, e.g. "Fixes #12". -->

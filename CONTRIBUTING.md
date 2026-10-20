@@ -59,7 +59,38 @@ The website has its own translations in the `I18N` object at the bottom of `webs
 2. Keep each pull request focused on one change. Include tests for logic changes (stitching, rendering, layout).
 3. Run `swift test` and `python3 scripts/check-localizations.py` before pushing.
 4. For UI changes, attach before and after screenshots, in light and dark mode if the change affects colours.
-5. Write clear commit messages in the imperative mood: "Add blur tool", not "Added blur tool".
+5. Give the pull request a title in the format below. We squash-merge, so the title becomes the commit on `main`.
+
+### Pull request titles
+
+Titles follow [Conventional Commits](https://www.conventionalcommits.org): `type(scope): summary`.
+
+```
+feat(editor): add a blur tool
+fix(capture): keep sticky headers once in scrolling capture
+docs: explain how to add a language
+```
+
+- **type** is one of:
+
+  | Type | Use it for |
+  |:--|:--|
+  | `feat` | a new feature people will notice |
+  | `fix` | a bug fix |
+  | `perf` | a faster or lighter app, with no change in behaviour |
+  | `refactor` | a code change that adds no feature and fixes no bug |
+  | `i18n` | translations and right-to-left fixes |
+  | `docs` | README, guides and comments |
+  | `test` | tests only |
+  | `build` | `Package.swift`, `scripts/` and app packaging |
+  | `ci` | GitHub Actions workflows |
+  | `chore` | anything else, such as housekeeping |
+
+- **scope** is optional: `app`, `capture`, `editor`, `export`, `quick-access`, `settings`, `website` or `brand`.
+- **summary** starts with a lowercase verb in the imperative mood ("add", not "added" or "adds"), has no full stop at the end, and fits in about 70 characters.
+- Add `!` after the type for a breaking change, for example `feat(settings)!: store presets in a new format`.
+
+A check on every pull request makes sure the title follows these rules. Commit messages inside your branch can be anything you like.
 
 CI builds the app on macOS, runs the tests, checks the translations and launches the app to make sure it starts. A maintainer reviews every pull request; expect a reply within a few days.
 
