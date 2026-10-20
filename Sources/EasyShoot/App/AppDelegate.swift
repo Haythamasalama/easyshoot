@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if WelcomeWindowController.shared.shouldShowAtLaunch {
             WelcomeWindowController.shared.show()
         }
+        Updater.shared.start()
     }
 
     /// Opening the app again from Finder or Launchpad shows the welcome window, so it never looks like nothing happened.
@@ -59,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(actionItem(.annotateClipboard, symbol: "doc.on.clipboard"))
         menu.addItem(.separator())
         menu.addItem(makeItem(L("Welcome & Permissions…"), #selector(showWelcome(_:)), symbol: "hand.wave"))
+        menu.addItem(makeItem(L("Check for Updates…"), #selector(checkForUpdates(_:)), symbol: "arrow.down.circle"))
         menu.addItem(makeItem(L("Settings…"), #selector(openSettings(_:)), key: ",", symbol: "gearshape"))
         menu.addItem(.separator())
         menu.addItem(makeItem(L("Quit EasyShoot"), #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
@@ -115,6 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openImage(_ sender: Any?) { coordinator.openImageFile() }
     @objc func annotateClipboard(_ sender: Any?) { coordinator.annotateClipboard() }
     @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.shared.show() }
+    @objc func checkForUpdates(_ sender: Any?) { Updater.shared.check(userInitiated: true) }
 
     @objc func openSettings(_ sender: Any?) {
         if settingsWindow == nil {

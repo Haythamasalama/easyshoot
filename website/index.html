@@ -255,6 +255,8 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(
 .term-bar { display: flex; gap: 7px; padding: 12px 14px; border-bottom: 1px solid #1C1C21; }
 .term-bar span { width: 11px; height: 11px; border-radius: 50%; background: #3A3A42; }
 .term-body { padding: 20px 22px; line-height: 2; overflow-x: auto; white-space: nowrap; }
+.copy-btn { margin: 0 22px 20px; min-height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid #2E2E36; background: #18181C; color: #F5F5F7; font: 500 13px var(--body); cursor: pointer; }
+.copy-btn:hover { background: #222228; }
 
 /* Open source */
 .oss { display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-end; }
@@ -609,7 +611,7 @@ h1 { font-weight: 600; font-size: clamp(48px, 7.4vw, 100px); line-height: 1.02; 
     <div class="card feature">
       <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4"/></svg></span>
       <h3 data-i18n="f.private.t">Private by design</h3>
-      <p data-i18n="f.private.b">No account, no cloud, no analytics. Your screenshots stay on your Mac.</p>
+      <p data-i18n="f.private.b">No account, no cloud, no analytics. It only goes online for updates and fonts you pick.</p>
     </div>
   </div>
 </section>
@@ -628,19 +630,19 @@ h1 { font-weight: 600; font-size: clamp(48px, 7.4vw, 100px); line-height: 1.02; 
       <p class="eyebrow" data-i18n="install.eyebrow">Install</p>
       <h2 class="h2" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="install.title">Running in under a minute.</h2>
       <ol>
-        <li><span>1</span><span data-i18n-html="install.s1"><b>Download</b> EasyShoot.zip, unzip it and drag the app into Applications.</span></li>
-        <li><span>2</span><span data-i18n-html="install.s2"><b>Open it once.</b> It isn’t notarized yet, so click <b>Open Anyway</b> in System Settings › Privacy &amp; Security, or run the command.</span></li>
-        <li><span>3</span><span data-i18n-html="install.s3"><b>Allow</b> screen recording in the Welcome window, then press ⌥⇧⌘4.</span></li>
+        <li><span>1</span><span data-i18n-html="install.s1"><b>Paste the command</b> into Terminal. It downloads EasyShoot into Applications and opens it.</span></li>
+        <li><span>2</span><span data-i18n-html="install.s2"><b>Allow</b> screen recording in the Welcome window, then press ⌥⇧⌘4.</span></li>
+        <li><span>3</span><span data-i18n-html="install.s3"><b>Updates come to you.</b> EasyShoot checks once a day and updates itself in one click.</span></li>
       </ol>
-      <p style="margin: 22px 0 0; font-size: 14px; color: var(--muted2)" data-i18n="install.req">Requires macOS 14 Sonoma or later, on Apple silicon or Intel.</p>
+      <p style="margin: 22px 0 0; font-size: 14px; color: var(--muted2)"><span data-i18n="install.req">Requires macOS 14 Sonoma or later, on Apple silicon or Intel.</span> <a href="https://github.com/Haythamasalama/easyshoot/releases/latest" data-i18n="install.alt">Or download the zip.</a></p>
     </div>
     <div class="term">
       <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span></div>
       <div class="term-body">
-        <div style="color:#7C7C86" data-i18n="install.comment"># only if macOS blocks the first launch</div>
-        <div><span style="color:#FF7A45">$</span> xattr -cr /Applications/EasyShoot.app</div>
-        <div><span style="color:#FF7A45">$</span> open -a EasyShoot</div>
+        <div style="color:#7C7C86" data-i18n="install.comment"># install or reinstall the latest version</div>
+        <div><span style="color:#FF7A45">$</span> <span id="installCmd">curl -fsSL https://easyshoot.haythamasalama.me/install.sh | bash</span></div>
       </div>
+      <button type="button" class="copy-btn" id="copyInstall" data-i18n="install.copy">Copy command</button>
     </div>
   </div>
 </section>
@@ -686,6 +688,9 @@ h1 { font-weight: 600; font-size: clamp(48px, 7.4vw, 100px); line-height: 1.02; 
 <script>
 const I18N = {
   en: {
+    "install.copied": "Copied ✓",
+    "install.copy": "Copy command",
+    "install.alt": "Or download the zip.",
     "feat.sub": "Capture, mark up, frame and share without leaving EasyShoot. Every tool is a single key away.",
     "nav.features": "Features", "nav.how": "How it works", "nav.install": "Install", "nav.oss": "Open source", "nav.download": "Download",
     "hero.badge": "Free and open source for macOS",
@@ -711,16 +716,16 @@ const I18N = {
     "f.export.t": "Export", "f.export.b": "PNG, JPEG, HEIC or TIFF, with the final size shown before you save.",
     "f.shortcuts.t": "Your shortcuts", "f.shortcuts.b": "Record your own global shortcuts. In the editor, single letters switch tools.",
     "f.glass.t": "Liquid Glass", "f.glass.b": "Built for the newest macOS look, with a clean fallback on macOS 14 and 15.",
-    "f.private.t": "Private by design", "f.private.b": "No account, no cloud, no analytics. Your screenshots stay on your Mac.",
+    "f.private.t": "Private by design", "f.private.b": "No account, no cloud, no analytics. It only goes online for updates and fonts you pick.",
     "how.1t": "Capture", "how.1b": "Drag over anything. Press Space for a window, or start a scrolling capture for long pages.",
     "how.2t": "Mark it up", "how.2b": "Single-letter tools: A for arrow, T for text, N for the next step.",
     "how.3t": "Share", "how.3b": "⇧⌘C to copy, ⌘S to save, or drag the image into any app.",
     "install.eyebrow": "Install", "install.title": "Running in under a minute.",
-    "install.s1": "<b>Download</b> EasyShoot.zip, unzip it and drag the app into Applications.",
-    "install.s2": "<b>Open it once.</b> It isn’t notarized yet, so click <b>Open Anyway</b> in System Settings › Privacy &amp; Security, or run the command.",
-    "install.s3": "<b>Allow</b> screen recording in the Welcome window, then press ⌥⇧⌘4.",
+    "install.s1": "<b>Paste the command</b> into Terminal. It downloads EasyShoot into Applications and opens it.",
+    "install.s2": "<b>Allow</b> screen recording in the Welcome window, then press ⌥⇧⌘4.",
+    "install.s3": "<b>Updates come to you.</b> EasyShoot checks once a day and updates itself in one click.",
     "install.req": "Requires macOS 14 Sonoma or later, on Apple silicon or Intel.",
-    "install.comment": "# only if macOS blocks the first launch",
+    "install.comment": "# install or reinstall the latest version",
     "oss.title": "Free forever. Built in the open.",
     "oss.body": "Swift and Apple frameworks only, no dependencies. Send a translation, a bug report or a pull request.",
     "oss.repo": "Star it, fork it, make it yours", "oss.contrib": "Contribute", "oss.contribSub": "Setup and code style",
@@ -730,6 +735,9 @@ const I18N = {
     "theme.toLight": "Switch to light mode", "theme.toDark": "Switch to dark mode"
   },
   ar: {
+    "install.copied": "تم النسخ ✓",
+    "install.copy": "انسخ الأمر",
+    "install.alt": "أو نزّل ملف zip.",
     "feat.sub": "التقط، ووضّح، وأطّر، وشارك دون مغادرة EasyShoot. كل أداة على بعد زر واحد.",
     "nav.features": "المميزات", "nav.how": "كيف يعمل", "nav.install": "التثبيت", "nav.oss": "مفتوح المصدر", "nav.download": "تنزيل",
     "hero.badge": "مجاني ومفتوح المصدر لنظام macOS",
@@ -755,16 +763,16 @@ const I18N = {
     "f.export.t": "التصدير", "f.export.b": "PNG أو JPEG أو HEIC أو TIFF، مع عرض الحجم النهائي قبل الحفظ.",
     "f.shortcuts.t": "اختصاراتك", "f.shortcuts.b": "سجّل اختصاراتك العامة. وفي المحرر، حرف واحد يبدّل الأداة.",
     "f.glass.t": "Liquid Glass", "f.glass.b": "مصمم لأحدث شكل في macOS، مع بديل نظيف على macOS 14 و15.",
-    "f.private.t": "خصوصية أولاً", "f.private.b": "بلا حساب ولا سحابة ولا تتبّع. لقطاتك تبقى على جهازك.",
+    "f.private.t": "خصوصية أولاً", "f.private.b": "بلا حساب ولا سحابة ولا تتبّع. لا يتصل بالإنترنت إلا للتحديثات والخطوط التي تختارها.",
     "how.1t": "التقط", "how.1b": "اسحب فوق أي شيء. اضغط مسافة لنافذة، أو ابدأ التقاطاً طويلاً للصفحات الطويلة.",
     "how.2t": "وضّح", "how.2b": "أدوات بحرف واحد: A للسهم، وT للنص، وN للخطوة التالية.",
     "how.3t": "شارك", "how.3b": "‎⇧⌘C‎ للنسخ، و‎⌘S‎ للحفظ، أو اسحب الصورة إلى أي تطبيق.",
     "install.eyebrow": "التثبيت", "install.title": "جاهز خلال أقل من دقيقة.",
-    "install.s1": "<b>نزّل</b> ملف EasyShoot.zip، وفكّ ضغطه، واسحب التطبيق إلى مجلد التطبيقات.",
-    "install.s2": "<b>افتحه أول مرة.</b> التطبيق غير موثّق من Apple بعد، لذا اضغط <b>الفتح على أي حال</b> من إعدادات النظام › الخصوصية والأمن، أو شغّل الأمر.",
-    "install.s3": "<b>اسمح</b> بتسجيل الشاشة من نافذة الترحيب، ثم اضغط ‎⌥⇧⌘4‎.",
+    "install.s1": "<b>الصق الأمر</b> في Terminal. سينزّل EasyShoot إلى مجلد التطبيقات ويفتحه.",
+    "install.s2": "<b>اسمح</b> بتسجيل الشاشة من نافذة الترحيب، ثم اضغط ‎⌥⇧⌘4‎.",
+    "install.s3": "<b>التحديثات تصلك.</b> يفحص EasyShoot مرة يومياً ويحدّث نفسه بضغطة واحدة.",
     "install.req": "يتطلب macOS 14 Sonoma أو أحدث، على معالجات Apple أو Intel.",
-    "install.comment": "# فقط إذا منع macOS التشغيل الأول",
+    "install.comment": "# ثبّت أحدث إصدار أو أعد تثبيته",
     "oss.title": "مجاني للأبد، ومبني في العلن.",
     "oss.body": "مكتوب بـ Swift وأطر Apple فقط، بلا أي مكتبات خارجية. أرسل ترجمة أو بلاغاً عن خلل أو طلب دمج.",
     "oss.repo": "أعطه نجمة، انسخه، واجعله لك", "oss.contrib": "ساهم", "oss.contribSub": "الإعداد وأسلوب الكود",
@@ -774,6 +782,9 @@ const I18N = {
     "theme.toLight": "التبديل إلى الوضع الفاتح", "theme.toDark": "التبديل إلى الوضع الداكن"
   },
   fr: {
+    "install.copied": "Copié ✓",
+    "install.copy": "Copier la commande",
+    "install.alt": "Ou téléchargez le zip.",
     "feat.sub": "Capturez, annotez, encadrez et partagez sans quitter EasyShoot. Chaque outil est à une touche.",
     "nav.features": "Fonctions", "nav.how": "Comment ça marche", "nav.install": "Installation", "nav.oss": "Open source", "nav.download": "Télécharger",
     "hero.badge": "Gratuit et open source pour macOS",
@@ -799,16 +810,16 @@ const I18N = {
     "f.export.t": "Export", "f.export.b": "PNG, JPEG, HEIC ou TIFF, avec la taille finale affichée avant d’enregistrer.",
     "f.shortcuts.t": "Vos raccourcis", "f.shortcuts.b": "Enregistrez vos raccourcis globaux. Dans l’éditeur, une lettre change d’outil.",
     "f.glass.t": "Liquid Glass", "f.glass.b": "Pensé pour le nouveau look de macOS, avec un rendu propre sur macOS 14 et 15.",
-    "f.private.t": "Privé par conception", "f.private.b": "Ni compte, ni cloud, ni statistiques. Vos captures restent sur votre Mac.",
+    "f.private.t": "Privé par conception", "f.private.b": "Ni compte, ni cloud, ni statistiques. Il ne se connecte que pour les mises à jour et les polices choisies.",
     "how.1t": "Capturer", "how.1b": "Sélectionnez n’importe quoi. Espace pour une fenêtre, ou une capture défilante pour les pages longues.",
     "how.2t": "Annoter", "how.2b": "Des outils à une lettre : A pour flèche, T pour texte, N pour l’étape suivante.",
     "how.3t": "Partager", "how.3b": "⇧⌘C pour copier, ⌘S pour enregistrer, ou glissez l’image dans n’importe quelle app.",
     "install.eyebrow": "Installation", "install.title": "Prêt en moins d’une minute.",
-    "install.s1": "<b>Téléchargez</b> EasyShoot.zip, décompressez-le et glissez l’app dans Applications.",
-    "install.s2": "<b>Ouvrez-la une fois.</b> Elle n’est pas encore notarisée : cliquez sur <b>Ouvrir quand même</b> dans Réglages Système › Confidentialité et sécurité, ou lancez la commande.",
-    "install.s3": "<b>Autorisez</b> l’enregistrement de l’écran dans la fenêtre d’accueil, puis appuyez sur ⌥⇧⌘4.",
+    "install.s1": "<b>Collez la commande</b> dans Terminal. Elle télécharge EasyShoot dans Applications et l’ouvre.",
+    "install.s2": "<b>Autorisez</b> l’enregistrement de l’écran dans la fenêtre d’accueil, puis appuyez sur ⌥⇧⌘4.",
+    "install.s3": "<b>Les mises à jour viennent à vous.</b> EasyShoot vérifie une fois par jour et se met à jour en un clic.",
     "install.req": "Nécessite macOS 14 Sonoma ou plus récent, sur Apple silicon ou Intel.",
-    "install.comment": "# seulement si macOS bloque le premier lancement",
+    "install.comment": "# installer ou réinstaller la dernière version",
     "oss.title": "Gratuit pour toujours. Développé en public.",
     "oss.body": "Swift et frameworks Apple uniquement, sans dépendances. Envoyez une traduction, un bug ou une pull request.",
     "oss.repo": "Mettez une étoile, forkez, faites-le vôtre", "oss.contrib": "Contribuer", "oss.contribSub": "Installation et style de code",
@@ -818,6 +829,9 @@ const I18N = {
     "theme.toLight": "Passer en mode clair", "theme.toDark": "Passer en mode sombre"
   },
   es: {
+    "install.copied": "Copiado ✓",
+    "install.copy": "Copiar comando",
+    "install.alt": "O descarga el zip.",
     "feat.sub": "Captura, anota, enmarca y comparte sin salir de EasyShoot. Cada herramienta está a una tecla.",
     "nav.features": "Funciones", "nav.how": "Cómo funciona", "nav.install": "Instalar", "nav.oss": "Código abierto", "nav.download": "Descargar",
     "hero.badge": "Gratis y de código abierto para macOS",
@@ -843,16 +857,16 @@ const I18N = {
     "f.export.t": "Exportar", "f.export.b": "PNG, JPEG, HEIC o TIFF, con el tamaño final visible antes de guardar.",
     "f.shortcuts.t": "Tus atajos", "f.shortcuts.b": "Graba tus atajos globales. En el editor, una letra cambia de herramienta.",
     "f.glass.t": "Liquid Glass", "f.glass.b": "Hecho para el nuevo aspecto de macOS, con una versión limpia en macOS 14 y 15.",
-    "f.private.t": "Privado por diseño", "f.private.b": "Sin cuenta, sin nube, sin analíticas. Tus capturas se quedan en tu Mac.",
+    "f.private.t": "Privado por diseño", "f.private.b": "Sin cuenta, sin nube, sin analíticas. Solo se conecta para actualizaciones y las fuentes que elijas.",
     "how.1t": "Captura", "how.1b": "Arrastra sobre lo que quieras. Espacio para una ventana, o una captura con desplazamiento para páginas largas.",
     "how.2t": "Anota", "how.2b": "Herramientas de una letra: A para flecha, T para texto, N para el siguiente paso.",
     "how.3t": "Comparte", "how.3b": "⇧⌘C para copiar, ⌘S para guardar, o arrastra la imagen a cualquier app.",
     "install.eyebrow": "Instalar", "install.title": "Listo en menos de un minuto.",
-    "install.s1": "<b>Descarga</b> EasyShoot.zip, descomprímelo y arrastra la app a Aplicaciones.",
-    "install.s2": "<b>Ábrela una vez.</b> Aún no está notarizada, así que pulsa <b>Abrir igualmente</b> en Ajustes del Sistema › Privacidad y seguridad, o ejecuta el comando.",
-    "install.s3": "<b>Permite</b> la grabación de pantalla en la ventana de bienvenida y pulsa ⌥⇧⌘4.",
+    "install.s1": "<b>Pega el comando</b> en Terminal. Descarga EasyShoot en Aplicaciones y lo abre.",
+    "install.s2": "<b>Permite</b> la grabación de pantalla en la ventana de bienvenida y pulsa ⌥⇧⌘4.",
+    "install.s3": "<b>Las actualizaciones llegan solas.</b> EasyShoot comprueba una vez al día y se actualiza con un clic.",
     "install.req": "Requiere macOS 14 Sonoma o posterior, en Apple silicon o Intel.",
-    "install.comment": "# solo si macOS bloquea el primer arranque",
+    "install.comment": "# instalar o reinstalar la última versión",
     "oss.title": "Gratis para siempre. Hecho en abierto.",
     "oss.body": "Solo Swift y frameworks de Apple, sin dependencias. Envía una traducción, un error o un pull request.",
     "oss.repo": "Dale una estrella, haz un fork, hazlo tuyo", "oss.contrib": "Contribuir", "oss.contribSub": "Configuración y estilo de código",
@@ -862,6 +876,9 @@ const I18N = {
     "theme.toLight": "Cambiar a modo claro", "theme.toDark": "Cambiar a modo oscuro"
   },
   de: {
+    "install.copied": "Kopiert ✓",
+    "install.copy": "Befehl kopieren",
+    "install.alt": "Oder lade die ZIP-Datei.",
     "feat.sub": "Aufnehmen, markieren, rahmen und teilen, ohne EasyShoot zu verlassen. Jedes Werkzeug liegt eine Taste entfernt.",
     "nav.features": "Funktionen", "nav.how": "So funktioniert’s", "nav.install": "Installation", "nav.oss": "Open Source", "nav.download": "Laden",
     "hero.badge": "Kostenlos und Open Source für macOS",
@@ -887,16 +904,16 @@ const I18N = {
     "f.export.t": "Export", "f.export.b": "PNG, JPEG, HEIC oder TIFF, mit der finalen Größe vor dem Sichern.",
     "f.shortcuts.t": "Deine Kurzbefehle", "f.shortcuts.b": "Nimm eigene globale Kurzbefehle auf. Im Editor wechselt ein Buchstabe das Werkzeug.",
     "f.glass.t": "Liquid Glass", "f.glass.b": "Gebaut für den neuen macOS-Look, mit sauberem Fallback auf macOS 14 und 15.",
-    "f.private.t": "Privat von Grund auf", "f.private.b": "Kein Konto, keine Cloud, keine Analyse. Deine Bilder bleiben auf deinem Mac.",
+    "f.private.t": "Privat von Grund auf", "f.private.b": "Kein Konto, keine Cloud, keine Analyse. Online nur für Updates und gewählte Schriften.",
     "how.1t": "Aufnehmen", "how.1b": "Ziehe über alles. Leertaste für ein Fenster, oder eine scrollende Aufnahme für lange Seiten.",
     "how.2t": "Markieren", "how.2b": "Werkzeuge mit einem Buchstaben: A für Pfeil, T für Text, N für den nächsten Schritt.",
     "how.3t": "Teilen", "how.3b": "⇧⌘C zum Kopieren, ⌘S zum Sichern, oder das Bild in jede App ziehen.",
     "install.eyebrow": "Installation", "install.title": "In unter einer Minute startklar.",
-    "install.s1": "<b>Lade</b> EasyShoot.zip, entpacke es und ziehe die App in „Programme“.",
-    "install.s2": "<b>Einmal öffnen.</b> Die App ist noch nicht notarisiert, also klicke in Systemeinstellungen › Datenschutz &amp; Sicherheit auf <b>Trotzdem öffnen</b>, oder führe den Befehl aus.",
-    "install.s3": "<b>Erlaube</b> die Bildschirmaufnahme im Willkommensfenster und drücke dann ⌥⇧⌘4.",
+    "install.s1": "<b>Füge den Befehl</b> ins Terminal ein. Er lädt EasyShoot in „Programme“ und öffnet es.",
+    "install.s2": "<b>Erlaube</b> die Bildschirmaufnahme im Willkommensfenster und drücke dann ⌥⇧⌘4.",
+    "install.s3": "<b>Updates kommen von selbst.</b> EasyShoot prüft einmal am Tag und aktualisiert sich mit einem Klick.",
     "install.req": "Benötigt macOS 14 Sonoma oder neuer, auf Apple silicon oder Intel.",
-    "install.comment": "# nur falls macOS den ersten Start blockiert",
+    "install.comment": "# neueste Version installieren oder neu installieren",
     "oss.title": "Für immer kostenlos. Offen entwickelt.",
     "oss.body": "Nur Swift und Apple-Frameworks, keine Abhängigkeiten. Schick eine Übersetzung, einen Fehlerbericht oder einen Pull Request.",
     "oss.repo": "Stern geben, forken, zu deinem machen", "oss.contrib": "Mitmachen", "oss.contribSub": "Einrichtung und Code-Stil",
@@ -943,6 +960,14 @@ langBtn.addEventListener("click", e => { e.stopPropagation(); setMenu(langMenu.h
 langMenu.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { applyLang(b.dataset.lang); setMenu(false); langBtn.focus(); }));
 document.addEventListener("click", e => { if (!langMenu.hidden && !e.target.closest(".lang")) setMenu(false); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !langMenu.hidden) { setMenu(false); langBtn.focus(); } });
+
+// Copy the install command
+document.getElementById("copyInstall").addEventListener("click", async e => {
+  const btn = e.currentTarget;
+  try { await navigator.clipboard.writeText(document.getElementById("installCmd").textContent); } catch (err) { return; }
+  btn.textContent = I18N[currentLang]["install.copied"] || I18N.en["install.copied"];
+  setTimeout(() => { btn.textContent = I18N[currentLang]["install.copy"] || I18N.en["install.copy"]; }, 1600);
+});
 
 // Mobile menu
 const navEl = document.querySelector(".nav"), menuBtn = document.getElementById("menuBtn");
