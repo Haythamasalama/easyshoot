@@ -2,7 +2,8 @@ name: Website
 
 on:
   push:
-    branches: [main]
+    # main once it exists; the current default branch until then
+    branches: [main, claude/cleanshot-mac-app-au2vqu]
     paths: ["website/**"]
   workflow_dispatch:
 
@@ -24,6 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: website
