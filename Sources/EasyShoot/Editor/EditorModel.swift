@@ -287,13 +287,6 @@ final class EditorModel: ObservableObject {
         }
     }
 
-    func dragItemProvider() -> NSItemProvider {
-        guard let r = renderForExport(),
-              let url = try? ExportService.writeTemporary(r.image, options: export, dpiScale: r.dpiScale),
-              let provider = NSItemProvider(contentsOf: url) else { return NSItemProvider() }
-        return provider
-    }
-
     func flash(_ message: String) {
         statusMessage = message
         statusClearTask?.cancel()
