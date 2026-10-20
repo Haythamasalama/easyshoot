@@ -211,7 +211,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(
 .bars span { flex: 1; border-radius: 4px 4px 0 0; background: #DCD6FF; }
 .mosaic { display: grid; grid-template-columns: repeat(14, 7px); grid-auto-rows: 7px; border-radius: 3px; overflow: hidden; }
 .step { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #FF3B30; color: #FFFFFF; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; border: 3px solid #FFFFFF; box-shadow: 0 6px 14px rgba(0, 0, 0, .35); }
-.note { position: absolute; right: -150px; top: -104px; padding: 8px 12px; border-radius: 10px; background: #FF3B30; color: #FFFFFF; font-size: 14px; font-weight: 700; white-space: nowrap; box-shadow: 0 10px 24px -6px rgba(0, 0, 0, .45); }
+.note { position: absolute; right: -34px; top: -84px; padding: 8px 12px; border-radius: 10px; background: #FF3B30; color: #FFFFFF; font-size: 14px; font-weight: 700; white-space: nowrap; box-shadow: 0 10px 24px -6px rgba(0, 0, 0, .45); }
 .inspector { width: 260px; flex: none; background: #121216; border-left: 1px solid #222228; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 9px; background: #1C1C21; text-align: center; font-weight: 500; color: #A1A1AA; }
 .seg span { padding: 5px 0; border-radius: 7px; }
@@ -269,6 +269,43 @@ footer { border-top: 1px solid var(--line); }
 footer .wrap { padding-top: 26px; padding-bottom: 26px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted2); }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--ink); }
+
+/* Refined: spotlight from the top, calmer weights, pill labels, compact cards */
+:root { --bg: #09090B; --card: rgba(255, 255, 255, .025); --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .14); }
+:root[data-theme="light"] { --card: #FFFFFF; --line: rgba(10, 10, 12, .09); --line2: rgba(10, 10, 12, .16); }
+.hero { padding-top: 150px; padding-bottom: 0; }
+.hero::before { content: ""; position: absolute; inset: -120px 0 auto 0; height: 980px; pointer-events: none; background:
+  radial-gradient(60% 55% at 50% 0%, rgba(255, 138, 92, calc(var(--glow) * .55)), transparent 70%),
+  conic-gradient(from 180deg at 50% -8%, transparent 160deg, rgba(255, 170, 130, calc(var(--glow) * .22)) 172deg, rgba(255, 170, 130, calc(var(--glow) * .32)) 180deg, rgba(255, 170, 130, calc(var(--glow) * .22)) 188deg, transparent 200deg);
+  -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); }
+.hero .glow { display: none; }
+h1 { font-weight: 600; font-size: clamp(48px, 7.4vw, 100px); line-height: 1.02; letter-spacing: -.045em; }
+.hl::after { display: none; }
+.hl { color: var(--signal); }
+.corner { border-color: color-mix(in srgb, var(--signal) 80%, transparent); }
+.hero-sub { margin-top: 44px; font-size: 18px; max-width: 520px; }
+.btn { min-height: 46px; padding: 0 20px; border-radius: 10px; font-size: 15px; }
+.btn-primary { box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset, 0 8px 24px -10px rgba(255, 90, 31, .7); }
+.btn-ghost { background: rgba(255, 255, 255, .04); border-color: var(--line2); }
+.badge { background: rgba(255, 255, 255, .04); }
+.mock-wrap { margin-top: 96px; perspective: none; }
+.mock { transform: none; border-color: var(--line2); box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 40px 100px -40px rgba(0, 0, 0, .9), 0 -1px 0 rgba(255, 255, 255, .06) inset; }
+.eyebrow { display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 999px; background: rgba(255, 90, 31, .1); border: 1px solid rgba(255, 90, 31, .28); color: var(--signal-ink); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.h2 { font-weight: 600; font-size: clamp(30px, 4.2vw, 50px); line-height: 1.08; letter-spacing: -.035em; }
+.split { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px 48px; }
+.split > :first-child { flex: 1 1 420px; }
+.split > p { flex: 0 1 440px; margin: 0; color: var(--muted); font-size: 16px; }
+.card { border-radius: 14px; }
+.features { gap: 12px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.feature { padding: 22px 22px 24px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 10px; row-gap: 8px; }
+.feature .ico { width: auto; height: auto; background: none; border: 0; color: var(--signal); }
+.feature .ico svg { width: 18px; height: 18px; }
+.feature h3 { margin: 0; font-size: 15.5px; }
+.feature p { grid-column: 1 / -1; font-size: 14.5px; }
+.key { background: linear-gradient(180deg, #1D1D22, #121216); border-color: rgba(255, 255, 255, .1); box-shadow: 0 4px 0 #040405, 0 10px 24px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .06); }
+.num { font-size: 64px; font-weight: 600; -webkit-text-stroke: 1px var(--line2); }
+.mit { font-size: clamp(80px, 12vw, 160px); font-weight: 700; -webkit-text-stroke: 1px var(--line2); }
+.final .h2 { font-weight: 600 !important; }
 
 .section { padding-top: 150px; }
 .final { padding: 170px 24px 150px; }
@@ -444,7 +481,7 @@ footer a:hover { color: var(--ink); }
               <span class="step" style="left:-15px; top:72px">1</span>
               <span class="step s2" style="left:290px; top:66px">2</span>
               <span class="step" style="right:120px; bottom:6px">3</span>
-              <svg class="arrow" width="170" height="110" viewBox="0 0 170 110" style="position:absolute; right:-96px; top:-76px; overflow:visible" aria-hidden="true"><path d="M150 10 C 120 6, 70 20, 36 76" fill="none" stroke="#FF3B30" stroke-width="5" stroke-linecap="round"/><path d="M28 54 L34 80 L58 70" fill="none" stroke="#FF3B30" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="arrow" width="170" height="110" viewBox="0 0 170 110" style="position:absolute; right:-20px; top:-50px; overflow:visible" aria-hidden="true"><path d="M150 10 C 120 6, 70 20, 36 76" fill="none" stroke="#FF3B30" stroke-width="5" stroke-linecap="round"/><path d="M28 54 L34 80 L58 70" fill="none" stroke="#FF3B30" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span class="note">Export from here</span>
             </div>
           </div>
@@ -491,9 +528,12 @@ footer a:hover { color: var(--ink); }
 </section>
 
 <section id="features" class="wrap section">
-  <div style="max-width: 720px">
-    <p class="eyebrow" data-i18n="feat.eyebrow">Everything inside</p>
-    <h2 class="h2" data-i18n="feat.title">Four apps’ worth of work. One window.</h2>
+  <div class="split">
+    <div>
+      <p class="eyebrow" data-i18n="feat.eyebrow">Everything inside</p>
+      <h2 class="h2" data-i18n="feat.title">Four apps’ worth of work. One window.</h2>
+    </div>
+    <p data-i18n="feat.sub">Capture, mark up, frame and share without leaving EasyShoot. Every tool is a single key away.</p>
   </div>
   <div class="features">
     <div class="card feature">
@@ -646,6 +686,7 @@ footer a:hover { color: var(--ink); }
 <script>
 const I18N = {
   en: {
+    "feat.sub": "Capture, mark up, frame and share without leaving EasyShoot. Every tool is a single key away.",
     "nav.features": "Features", "nav.how": "How it works", "nav.install": "Install", "nav.oss": "Open source", "nav.download": "Download",
     "hero.badge": "Free and open source for macOS",
     "hero.title": 'Screenshots,<br><span class="hl">explained</span>.',
@@ -689,6 +730,7 @@ const I18N = {
     "theme.toLight": "Switch to light mode", "theme.toDark": "Switch to dark mode"
   },
   ar: {
+    "feat.sub": "التقط، ووضّح، وأطّر، وشارك دون مغادرة EasyShoot. كل أداة على بعد زر واحد.",
     "nav.features": "المميزات", "nav.how": "كيف يعمل", "nav.install": "التثبيت", "nav.oss": "مفتوح المصدر", "nav.download": "تنزيل",
     "hero.badge": "مجاني ومفتوح المصدر لنظام macOS",
     "hero.title": 'لقطات شاشة<br><span class="hl">تشرح نفسها</span>.',
@@ -732,6 +774,7 @@ const I18N = {
     "theme.toLight": "التبديل إلى الوضع الفاتح", "theme.toDark": "التبديل إلى الوضع الداكن"
   },
   fr: {
+    "feat.sub": "Capturez, annotez, encadrez et partagez sans quitter EasyShoot. Chaque outil est à une touche.",
     "nav.features": "Fonctions", "nav.how": "Comment ça marche", "nav.install": "Installation", "nav.oss": "Open source", "nav.download": "Télécharger",
     "hero.badge": "Gratuit et open source pour macOS",
     "hero.title": 'Des captures<br><span class="hl">qui expliquent</span>.',
@@ -775,6 +818,7 @@ const I18N = {
     "theme.toLight": "Passer en mode clair", "theme.toDark": "Passer en mode sombre"
   },
   es: {
+    "feat.sub": "Captura, anota, enmarca y comparte sin salir de EasyShoot. Cada herramienta está a una tecla.",
     "nav.features": "Funciones", "nav.how": "Cómo funciona", "nav.install": "Instalar", "nav.oss": "Código abierto", "nav.download": "Descargar",
     "hero.badge": "Gratis y de código abierto para macOS",
     "hero.title": 'Capturas que<br><span class="hl">se explican</span>.',
@@ -818,6 +862,7 @@ const I18N = {
     "theme.toLight": "Cambiar a modo claro", "theme.toDark": "Cambiar a modo oscuro"
   },
   de: {
+    "feat.sub": "Aufnehmen, markieren, rahmen und teilen, ohne EasyShoot zu verlassen. Jedes Werkzeug liegt eine Taste entfernt.",
     "nav.features": "Funktionen", "nav.how": "So funktioniert’s", "nav.install": "Installation", "nav.oss": "Open Source", "nav.download": "Laden",
     "hero.badge": "Kostenlos und Open Source für macOS",
     "hero.title": 'Screenshots,<br><span class="hl">erklärt</span>.',
