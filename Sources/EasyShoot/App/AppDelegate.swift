@@ -125,8 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             window.titlebarAppearsTransparent = true
             window.toolbarStyle = .unified
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared, shortcuts: .shared)
-                .tint(Brand.signal))
+            window.contentView = NSHostingView(rootView: SettingsView(settings: .shared, presets: .shared, shortcuts: .shared))
             window.center()
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
                 MainActor.assumeIsolated {

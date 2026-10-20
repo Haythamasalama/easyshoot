@@ -7,7 +7,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     var onClose: ((EditorWindowController) -> Void)?
 
     init(result: CaptureResult) {
-        model = EditorModel(result: result, preset: PresetStore.shared.defaultPreset)
+        model = EditorModel(result: result, preset: PresetStore.shared.defaultPreset, lastUsed: LastUsedStore.load())
+        model.rememberSettings()
 
         let visible = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let imagePoints = CGSize(width: CGFloat(result.image.width) / result.scale,
@@ -24,7 +25,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window.tabbingMode = .disallowed
         super.init(window: window)
 
-        window.contentView = NSHostingView(rootView: EditorView(model: model, presets: PresetStore.shared).tint(Brand.signal))
+        window.contentView = NSHostingView(rootView: EditorView(model: model, presets: PresetStore.shared))
         window.delegate = self
         window.center()
         model.window = window

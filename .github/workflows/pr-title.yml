@@ -1,0 +1,44 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional:
+    runs-on: ubuntu-latest
+    steps:
+      # Squash merges use the PR title as the commit on main, so keep it in
+      # the format CONTRIBUTING.md describes.
+      - uses: amannn/action-semantic-pull-request@v5.5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            i18n
+            docs
+            test
+            build
+            ci
+            chore
+          scopes: |
+            app
+            capture
+            editor
+            export
+            quick-access
+            settings
+            website
+            brand
+          requireScope: false
+          subjectPattern: ^[a-z].*[^.]$
+          subjectPatternError: |
+            Start the summary "{subject}" with a lowercase verb and leave off the final full stop,
+            for example "feat(editor): add a blur tool".

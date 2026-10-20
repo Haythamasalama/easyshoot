@@ -66,4 +66,31 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(Renderer.hitTest(CGPoint(x: 50, y: 51), in: [arrow], scale: 1), arrow.id)
         XCTAssertNil(Renderer.hitTest(CGPoint(x: 90, y: 10), in: [arrow], scale: 1))
     }
+
+    func testNewEditorStartsFromLastUsedSettings() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "EasyShootTests.lastUsed"))
+        defaults.removePersistentDomain(forName: "EasyShootTests.lastUsed")
+        var background = BackgroundSettings()
+        background.enabled = true
+        background.padding = 80
+        let saved = LastUsed(background: background, style: AnnotationStyle(color: .blue),
+                             export: ExportOptions(format: .jpeg), tool: Tool.text.rawValue)
+        LastUsedStore.save(saved, to: defaults)
+
+        let loaded = try XCTUnwrap(LastUsedStore.load(from: defaults))
+        XCTAssertEqual(loaded, saved)
+
+        let result = CaptureResult(image: makeImage(width: 40, height: 30), scale: 1)
+        let model = EditorModel(result: result, preset: nil, lastUsed: loaded)
+        XCTAssertEqual(model.doc.background, background)
+        XCTAssertEqual(model.style, saved.style)
+        XCTAssertEqual(model.export.format, .jpeg)
+        XCTAssertEqual(model.tool, .text)
+
+        // An explicit default preset still wins.
+        let preset = Preset(name: "Plain", background: BackgroundSettings(), style: AnnotationStyle(), export: ExportOptions())
+        let withPreset = EditorModel(result: result, preset: preset, lastUsed: loaded)
+        XCTAssertFalse(withPreset.doc.background.enabled)
+        XCTAssertEqual(withPreset.tool, .arrow)
+    }
 }

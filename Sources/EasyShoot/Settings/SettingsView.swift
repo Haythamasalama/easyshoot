@@ -208,7 +208,7 @@ private struct PresetSettings: View {
             } header: {
                 Text(L("Presets"))
             } footer: {
-                Text(L("The default preset is applied to every new screenshot: background, annotation style and export format. Create presets from the editor’s Presets menu."))
+                Text(L("The default preset is applied to every new screenshot: background, annotation style and export format. Without a default, each screenshot starts with your last settings. Create presets from the editor’s Presets menu."))
                     .foregroundStyle(.secondary)
             }
             Section {

@@ -40,10 +40,10 @@ private struct ToolButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(selected ? Color.white : Color.primary)
+            .foregroundStyle(selected ? Brand.signal : Color.primary)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(selected ? Brand.signal : (configuration.isPressed ? Color.primary.opacity(0.12) : .clear))
+                    .fill(selected ? Brand.signal.opacity(0.16) : (configuration.isPressed ? Color.primary.opacity(0.12) : .clear))
             )
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
@@ -128,7 +128,7 @@ struct ColorDots: View {
                         .overlay(Circle().strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5))
                         .frame(width: 15, height: 15)
                         .padding(3)
-                        .overlay(Circle().strokeBorder(Brand.signal, lineWidth: model.activeStyle.color == color ? 2 : 0))
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(0.85), lineWidth: model.activeStyle.color == color ? 2 : 0))
                 }
                 .buttonStyle(.plain)
             }
@@ -430,7 +430,7 @@ struct BackgroundInspector: View {
                             GradientSwatch(colors: GradientPreset.all[i].colors, angle: GradientPreset.all[i].angle)
                                 .frame(height: 32)
                                 .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .strokeBorder(Brand.signal, lineWidth: model.doc.background.gradientIndex == i ? 2.5 : 0))
+                                    .strokeBorder(Color.primary.opacity(0.85), lineWidth: model.doc.background.gradientIndex == i ? 2.5 : 0))
                                 .onTapGesture { model.doc.background.gradientIndex = i }
                                 .help(GradientPreset.all[i].name)
                         }
@@ -471,7 +471,7 @@ struct BackgroundInspector: View {
                                         model.doc.background.alignment = alignment
                                     } label: {
                                         RoundedRectangle(cornerRadius: 3)
-                                            .fill(model.doc.background.alignment == alignment ? Brand.signal : Color.secondary.opacity(0.25))
+                                            .fill(model.doc.background.alignment == alignment ? Color.accentColor : Color.secondary.opacity(0.25))
                                             .frame(width: 24, height: 16)
                                     }
                                     .buttonStyle(.plain)
