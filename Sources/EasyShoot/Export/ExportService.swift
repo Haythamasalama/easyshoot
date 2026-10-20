@@ -104,7 +104,7 @@ enum ExportService {
         if let preset { doc.background = preset.background }
         let options = preset?.export ?? ExportOptions()
         let layout = Renderer.layout(for: doc)
-        let factor = options.factor(canvasWidth: layout.canvasSize.width)
+        let factor = Renderer.safeFactor(options.factor(canvasWidth: layout.canvasSize.width), canvas: layout.canvasSize)
         if !doc.background.enabled && factor == 1 && options.format != .jpeg {
             return (result.image, options, result.scale)
         }

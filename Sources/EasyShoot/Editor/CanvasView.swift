@@ -139,6 +139,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
         var options = RenderOptions()
         options.drawBackground = !model.isCropping
         options.hiddenAnnotationID = editingID
+        options.displayImage = model.displayImage
         if case .creating(let a) = drag { options.draft = a }
         let needsPixelated = model.needsPixelated || options.draft?.kind == .pixelate
         Renderer.draw(model.doc, in: ctx, layout: layout, options: options, pixelated: needsPixelated ? model.pixelated : nil)
@@ -495,12 +496,24 @@ final class CanvasView: NSView, NSTextViewDelegate {
         default:
             break
         }
-        if let c = event.charactersIgnoringModifiers?.lowercased().first, let tool = Tool.forShortcut(c) {
+        if let c = Self.shortcutCharacter(event), let tool = Tool.forShortcut(c) {
             model.tool = tool
             return
         }
         super.keyDown(with: event)
     }
+
+    /// The tool letter for a key. With a non-Latin layout (Arabic, Russian…) it uses the key's place on a
+    /// US keyboard, so V, A, T… pick the same tools whatever keyboard is active.
+    private static func shortcutCharacter(_ event: NSEvent) -> Character? {
+        if let c = event.charactersIgnoringModifiers?.lowercased().first, c.isASCII { return c }
+        return usLetters[event.keyCode]
+    }
+
+    private static let usLetters: [UInt16: Character] = [
+        0: "a", 11: "b", 8: "c", 2: "d", 14: "e", 3: "f", 5: "g", 4: "h", 34: "i", 38: "j", 40: "k", 37: "l", 46: "m",
+        45: "n", 31: "o", 35: "p", 12: "q", 15: "r", 1: "s", 17: "t", 32: "u", 9: "v", 13: "w", 7: "x", 16: "y", 6: "z",
+    ]
 
     private func nudge(keyCode: UInt16, big: Bool) {
         guard let id = model.selectedID else { return }

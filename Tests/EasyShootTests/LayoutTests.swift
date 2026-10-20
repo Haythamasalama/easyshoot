@@ -68,6 +68,45 @@ final class LayoutTests: XCTestCase {
         }
     }
 
+    /// People can drag the inspector anywhere in its range: its content must fit at both ends, in both directions.
+    func testInspectorFitsItsWholeWidthRange() {
+        let range = EditorView.inspectorWidthRange
+        for width in [range.lowerBound, range.upperBound] {
+            for tab in InspectorView.Tab.allCases {
+                for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+                    let name = "inspector-\(Int(width))-\(tab)-\(direction == .rightToLeft ? "rtl" : "ltr")"
+                    let probe = render(name: name, size: CGSize(width: width, height: 760), direction: direction) {
+                        InspectorView(model: self.makeModel(), tab: tab).layoutProbe("inspector")
+                    }
+                    guard let inspector = probe.frames["inspector"], let content = probe.frames["inspectorContent"],
+                          let tabs = probe.frames["inspectorTabs"] else {
+                        XCTFail("\(name): inspector was not laid out")
+                        continue
+                    }
+                    XCTAssertEqual(inspector.width, width, accuracy: tolerance, "\(name): inspector changed width")
+                    for (part, rect) in [("content", content), ("tabs", tabs)] {
+                        XCTAssertGreaterThanOrEqual(rect.minX, inspector.minX - tolerance, "\(name): \(part) spills out on the left")
+                        XCTAssertLessThanOrEqual(rect.maxX, inspector.maxX + tolerance, "\(name): \(part) spills out on the right")
+                    }
+                }
+            }
+        }
+    }
+
+    /// The inspector at its widest in the smallest window leaves the canvas at its minimum width:
+    /// the narrowest toolbar must still fit there.
+    func testToolbarFitsTheNarrowestCanvas() {
+        let canvas = EditorView.canvasMinWidth
+        let probe = render(name: "toolbar-narrowest", size: CGSize(width: canvas, height: 80)) {
+            FloatingToolbar(model: self.makeModel(), compact: true, foldsShapes: true)
+                .layoutProbe("toolbar")
+                .padding(.horizontal, 12)
+        }
+        guard let toolbar = probe.frames["toolbar"] else { return XCTFail("toolbar was not laid out") }
+        XCTAssertLessThanOrEqual(toolbar.width, canvas - 24 + tolerance,
+                                 "the narrowest toolbar is \(toolbar.width) pt, too wide for a \(canvas) pt canvas")
+    }
+
     private func assertEditorLayout(_ probe: LayoutProbe, size: CGSize, inspectorShown: Bool,
                                     direction: LayoutDirection, _ name: String) {
         let f = probe.frames
@@ -142,6 +181,8 @@ final class LayoutTests: XCTestCase {
         ("15in-MacBook-Air-1710x1112", CGSize(width: 1710, height: 1074)),
         ("16in-MacBook-Pro-1728x1117", CGSize(width: 1728, height: 1079)),
         ("24in-iMac-2240x1260", CGSize(width: 2240, height: 1235)),
+        ("27in-5K-2560x1440", CGSize(width: 2560, height: 1415)),
+        ("32in-6K-3008x1692", CGSize(width: 3008, height: 1667)),
     ]
 
     func testEditorOpensAtAGoodSizeOnEveryScreen() {

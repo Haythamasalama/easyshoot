@@ -27,6 +27,8 @@ struct RenderOptions {
     var drawBackground = true
     var hiddenAnnotationID: UUID?
     var draft: Annotation?
+    /// A smaller copy of a very large screenshot, used on screen instead of the full image.
+    var displayImage: CGImage?
 }
 
 /// Draws an `EditorDocument` into a top-left-origin (flipped) CGContext.
@@ -60,10 +62,19 @@ enum Renderer {
 
     // MARK: Full render
 
+    /// Shrinks a resize factor so the output stays something the formats and memory can hold
+    /// (JPEG stops at 65,535 px a side; about 2 GB of pixels), whatever is typed into Export › Width.
+    static func safeFactor(_ factor: CGFloat, canvas: CGSize) -> CGFloat {
+        let w = canvas.width * factor, h = canvas.height * factor
+        guard factor.isFinite, factor > 0, w.isFinite, h.isFinite, w > 0, h > 0 else { return 1 }
+        return factor * min(1, 65_535 / max(w, h), (500_000_000 / (w * h)).squareRoot())
+    }
+
     static func renderImage(_ doc: EditorDocument, factor: CGFloat = 1, pixelated: CGImage?, opaque: Bool) -> CGImage? {
         let layout = Self.layout(for: doc)
-        let w = max(1, Int((layout.canvasSize.width * factor).rounded()))
-        let h = max(1, Int((layout.canvasSize.height * factor).rounded()))
+        let width = (layout.canvasSize.width * factor).rounded(), height = (layout.canvasSize.height * factor).rounded()
+        guard width.isFinite, height.isFinite, width <= 65_535, height <= 65_535 else { return nil }
+        let w = max(1, Int(width)), h = max(1, Int(height))
         var space = CGColorSpace(name: CGColorSpace.sRGB)!
         if let cs = doc.image.colorSpace, cs.model == .rgb, cs.supportsOutput { space = cs }
         guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: space,
@@ -109,7 +120,7 @@ enum Renderer {
         ctx.saveGState()
         ctx.addPath(contentPath)
         ctx.clip()
-        drawImage(doc.image, in: CGRect(origin: layout.imageOrigin, size: doc.imageSize), ctx)
+        drawImage(options.displayImage ?? doc.image, in: CGRect(origin: layout.imageOrigin, size: doc.imageSize), ctx)
         ctx.restoreGState()
 
         ctx.saveGState()
@@ -436,6 +447,21 @@ enum Renderer {
         guard len2 > 0 else { return hypot(p.x - a.x, p.y - a.y) }
         let t = max(0, min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2))
         return hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+    }
+
+    // MARK: Downsample
+
+    /// A copy no longer than `maxSide` pixels, for drawing a huge image (a long scrolling capture) on screen.
+    static func downsample(_ image: CGImage, maxSide: Int) -> CGImage? {
+        let s = CGFloat(maxSide) / CGFloat(max(image.width, image.height))
+        guard s < 1 else { return image }
+        let w = max(1, Int(CGFloat(image.width) * s)), h = max(1, Int(CGFloat(image.height) * s))
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.interpolationQuality = .high
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return ctx.makeImage()
     }
 
     // MARK: Pixelate

@@ -23,13 +23,16 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
                               backing: .buffered, defer: false)
         window.title = "EasyShoot"
         window.isReleasedWhenClosed = false
-        window.minSize = Self.minimumSize
+        window.contentMinSize = Self.minimumSize
         window.tabbingMode = .disallowed
         super.init(window: window)
 
         window.contentView = NSHostingView(rootView: EditorView(model: model, presets: PresetStore.shared))
         window.delegate = self
-        window.center()
+        // Centre it on the screen the capture came from (center() would use the main display), never above its top.
+        let frame = window.frameRect(forContentRect: CGRect(origin: .zero, size: size))
+        window.setFrameOrigin(NSPoint(x: visible.midX - frame.width / 2,
+                                      y: max(visible.minY, min(visible.midY - frame.height / 2, visible.maxY - frame.height))))
         model.window = window
     }
 
@@ -57,7 +60,31 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         model.commitPendingEdits = nil
+        ColorPanelBridge.shared.detach()
         AppActivation.windowClosed()
         onClose?(self)
+    }
+
+    // MARK: Menu commands (the window delegate is in the responder chain)
+
+    @objc func saveImage(_ sender: Any?) { model.saveQuick() }
+    @objc func saveImageAs(_ sender: Any?) { model.saveAs() }
+
+    @objc func toggleInspector(_ sender: Any?) {
+        let defaults = UserDefaults.standard
+        defaults.set(!Self.inspectorShown, forKey: "showInspector")
+    }
+
+    private static var inspectorShown: Bool {
+        UserDefaults.standard.object(forKey: "showInspector") as? Bool ?? true
+    }
+}
+
+extension EditorWindowController: NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleInspector(_:)) {
+            menuItem.title = Self.inspectorShown ? L("Hide Inspector") : L("Show Inspector")
+        }
+        return true
     }
 }

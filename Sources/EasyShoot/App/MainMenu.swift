@@ -24,6 +24,10 @@ enum MainMenu {
         fileMenu.addItem(withTitle: L("Annotate Clipboard Image"), action: #selector(AppDelegate.annotateClipboard(_:)), keyEquivalent: "")
         fileMenu.addItem(.separator())
         fileMenu.addItem(withTitle: L("Close Window"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        // Editor commands, also on the bottom bar; enabled only while an editor window is in front.
+        fileMenu.addItem(withTitle: L("Save"), action: #selector(EditorWindowController.saveImage(_:)), keyEquivalent: "s")
+        let saveAs = fileMenu.addItem(withTitle: L("Save As…"), action: #selector(EditorWindowController.saveImageAs(_:)), keyEquivalent: "s")
+        saveAs.keyEquivalentModifierMask = [.command, .shift]
         fileItem.submenu = fileMenu
 
         let editItem = NSMenuItem()
@@ -39,6 +43,14 @@ enum MainMenu {
         editMenu.addItem(withTitle: L("Delete"), action: #selector(NSText.delete(_:)), keyEquivalent: "")
         editMenu.addItem(withTitle: L("Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = editMenu
+
+        let viewItem = NSMenuItem()
+        main.addItem(viewItem)
+        let viewMenu = NSMenu(title: L("View"))
+        // macOS adds Enter Full Screen to this menu by itself.
+        let inspector = viewMenu.addItem(withTitle: L("Hide Inspector"), action: #selector(EditorWindowController.toggleInspector(_:)), keyEquivalent: "i")
+        inspector.keyEquivalentModifierMask = [.command, .option]
+        viewItem.submenu = viewMenu
 
         let windowItem = NSMenuItem()
         main.addItem(windowItem)

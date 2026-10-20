@@ -11,15 +11,8 @@ final class LayoutProbe {
     }
 }
 
-private struct LayoutProbeKey: EnvironmentKey {
-    static let defaultValue: LayoutProbe? = nil
-}
-
 extension EnvironmentValues {
-    var layoutProbe: LayoutProbe? {
-        get { self[LayoutProbeKey.self] }
-        set { self[LayoutProbeKey.self] = newValue }
-    }
+    @Entry var layoutProbe: LayoutProbe? = nil
 }
 
 private struct LayoutProbeModifier: ViewModifier {
