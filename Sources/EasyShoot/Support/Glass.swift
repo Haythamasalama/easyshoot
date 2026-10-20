@@ -23,21 +23,21 @@ extension View {
         #endif
     }
 
-    /// Prominent glass button on macOS 26, bordered prominent before.
+    /// The one signal-orange action in a window: prominent glass on macOS 26, bordered prominent before.
     @ViewBuilder
     func primaryButtonStyle() -> some View {
         #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
-            self.buttonStyle(.glassProminent)
+            self.buttonStyle(.glassProminent).tint(Brand.signal)
         } else {
-            self.buttonStyle(.borderedProminent)
+            self.buttonStyle(.borderedProminent).tint(Brand.signal)
         }
         #else
-        self.buttonStyle(.borderedProminent)
+        self.buttonStyle(.borderedProminent).tint(Brand.signal)
         #endif
     }
 
-    /// Glass button on macOS 26, bordered before.
+    /// Neutral glass button on macOS 26, bordered before.
     @ViewBuilder
     func secondaryButtonStyle() -> some View {
         #if compiler(>=6.2)

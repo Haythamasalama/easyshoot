@@ -144,7 +144,6 @@ struct WelcomeView: View {
             .padding(.bottom, 24)
         }
         .frame(width: 520, height: 640)
-        .tint(Brand.signal)
         .onReceive(timer) { _ in hasScreenRecording = Permissions.hasScreenRecording }
         .onAppear {
             hasScreenRecording = Permissions.hasScreenRecording

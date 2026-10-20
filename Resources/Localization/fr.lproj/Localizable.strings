@@ -192,7 +192,7 @@
 "Text" = "Texte";
 "Text & Counter" = "Texte et compteur";
 "Text size" = "Taille du texte";
-"The default preset is applied to every new screenshot: background, annotation style and export format. Create presets from the editor’s Presets menu." = "Le préréglage par défaut s’applique à chaque nouvelle capture : arrière-plan, style d’annotation et format d’export. Créez des préréglages depuis le menu Préréglages de l’éditeur.";
+"The default preset is applied to every new screenshot: background, annotation style and export format. Without a default, each screenshot starts with your last settings. Create presets from the editor’s Presets menu." = "Le préréglage par défaut s’applique à chaque nouvelle capture : arrière-plan, style d’annotation et format d’export. Sans préréglage par défaut, chaque capture reprend vos derniers réglages. Créez des préréglages depuis le menu Préréglages de l’éditeur.";
 "There’s no main window. Look for this icon at the top-right of your screen. On a MacBook with a notch it can be hidden, so the keyboard shortcuts below always work." = "Il n’y a pas de fenêtre principale. Cherchez cette icône en haut à droite de l’écran. Sur un MacBook avec encoche, elle peut être masquée : les raccourcis ci-dessous fonctionnent toujours.";
 "Thickness" = "Épaisseur";
 "Tools" = "Outils";

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -33,14 +34,36 @@ final class EditorModel: ObservableObject {
     private var pixelatedCache: CGImage?
     private var pixelatedComputed = false
     private var statusClearTask: Task<Void, Never>?
+    private var lastUsedSink: AnyCancellable?
 
-    init(result: CaptureResult, preset: Preset?) {
+    /// Starts from the default preset when one is set, otherwise from the last screenshot's settings.
+    init(result: CaptureResult, preset: Preset?, lastUsed: LastUsed? = nil) {
         var doc = EditorDocument(image: result.image, scale: result.scale)
-        if let preset { doc.background = preset.background }
+        if let preset {
+            doc.background = preset.background
+            self.style = preset.style
+            self.export = preset.export
+        } else if let lastUsed {
+            doc.background = lastUsed.background
+            self.style = lastUsed.style
+            self.export = lastUsed.export
+            if let tool = Tool(rawValue: lastUsed.tool), tool != .crop { self.tool = tool }
+        } else {
+            self.style = AnnotationStyle()
+            self.export = ExportOptions()
+        }
         self.doc = doc
-        self.style = preset?.style ?? AnnotationStyle()
-        self.export = preset?.export ?? ExportOptions()
         self.cropDraft = doc.crop
+    }
+
+    /// Saves background, style, export options and tool as they change, for the next screenshot.
+    func rememberSettings(in defaults: UserDefaults = .standard) {
+        lastUsedSink = Publishers.CombineLatest4($doc.map(\.background), $style, $export, $tool)
+            .map { LastUsed(background: $0, style: $1, export: $2, tool: ($3 == .crop ? Tool.select : $3).rawValue) }
+            .removeDuplicates()
+            .dropFirst()
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { LastUsedStore.save($0, to: defaults) }
     }
 
     // MARK: Derived
