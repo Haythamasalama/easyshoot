@@ -221,10 +221,10 @@ struct TextBar: View {
                     Text(L("Auto")).tag(TextDirection.auto)
                     Image(systemName: "text.alignleft").help(L("Left to right")).tag(TextDirection.ltr)
                     Image(systemName: "text.alignright").help(L("Right to left")).tag(TextDirection.rtl)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 120)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 120)
             }
         }
         .padding(.horizontal, 10)
