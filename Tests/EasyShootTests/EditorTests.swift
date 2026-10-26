@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import EasyShoot
 
@@ -103,5 +104,21 @@ final class UpdaterTests: XCTestCase {
         XCTAssertFalse(Updater.isVersion("1.0.2", newerThan: "1.0.2"))
         XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1.0.0"))
         XCTAssertFalse(Updater.isVersion("1.0.1", newerThan: "1.0.2"))
+    }
+}
+
+final class FontLookupTests: XCTestCase {
+    func testFindsAFamilyInBold() throws {
+        let font = try XCTUnwrap(NSFont.family("Helvetica", size: 20, bold: true))
+        XCTAssertEqual(font.familyName, "Helvetica")
+        XCTAssertTrue(font.fontDescriptor.symbolicTraits.contains(.bold))
+        XCTAssertEqual(NSFont.family("Helvetica", size: 20, bold: false)?.fontDescriptor.symbolicTraits.contains(.bold), false)
+    }
+
+    /// An unknown family falls back to the system font, never to some other font that happens to match.
+    func testUnknownFamilyIsNotFound() {
+        XCTAssertNil(NSFont.family("No Such Family 4242", size: 20, bold: true))
+        XCTAssertNil(NSFont.family("", size: 20, bold: true))
+        XCTAssertEqual(AnnotationStyle(fontName: "No Such Family 4242").font(size: 20), .systemFont(ofSize: 20, weight: .semibold))
     }
 }

@@ -120,6 +120,7 @@ final class QuickAccessPanel: FloatingPanel {
         let thumbnail = NSImage(cgImage: small, size: CGSize(width: small.width, height: small.height))
         let view = QuickAccessView(
             image: thumbnail,
+            size: CGSize(width: width, height: height),
             onHover: { [weak self] in self?.isHovered = $0 },
             onCopy: { [weak self, weak manager] in if let self { manager?.copy(self) } },
             onSave: { [weak self, weak manager] in if let self { manager?.save(self) } },
@@ -130,12 +131,17 @@ final class QuickAccessPanel: FloatingPanel {
                 return manager.dragProvider(self)
             }
         )
-        contentView = FirstMouseHostingView(rootView: view)
+        let hosting = FirstMouseHostingView(rootView: view)
+        // The panel's size is set above; the thumbnail must never resize it.
+        hosting.sizingOptions = []
+        contentView = hosting
     }
 }
 
 struct QuickAccessView: View {
     let image: NSImage
+    /// The panel's size. The screenshot fills it and is cropped, so the buttons stay in its corners.
+    let size: CGSize
     let onHover: (Bool) -> Void
     let onCopy: () -> Void
     let onSave: () -> Void
@@ -147,10 +153,14 @@ struct QuickAccessView: View {
 
     var body: some View {
         ZStack {
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // In an overlay the image can't size the thumbnail. As a direct child, a very wide or very tall
+            // screenshot (a scrolling capture) made it bigger than the panel and pushed the corner buttons out.
+            Color.clear
+                .overlay {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
                 .clipped()
 
             Color.black.opacity(hovering ? 0.45 : 0)
@@ -171,6 +181,7 @@ struct QuickAccessView: View {
                 .padding(6)
             }
         }
+        .frame(width: size.width, height: size.height)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.35), lineWidth: 1))
         .background(HoverTracker { inside in

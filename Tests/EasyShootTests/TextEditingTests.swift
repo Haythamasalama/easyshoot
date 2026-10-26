@@ -46,6 +46,27 @@ final class TextEditingTests: XCTestCase {
         XCTAssertEqual(texts.map(\.text), ["Hi ش"])
     }
 
+    func testTextStaysOpenAndInPlaceWhenTheWindowResizes() throws {
+        let model = makeModel()
+        model.tool = .text
+        let canvas = try openEditor(model, size: CGSize(width: 1024, height: 640))
+        click(canvas, at: CGPoint(x: canvas.bounds.midX, y: canvas.bounds.midY))
+        settle()
+        let start = try XCTUnwrap(model.doc.annotations.first?.start, "the click should add a text")
+
+        window?.setContentSize(CGSize(width: 1440, height: 900))
+        settle()
+        XCTAssertNotNil(openTextField(in: canvas), "resizing the window closed the text field")
+        press("O", keyCode: 31)
+        press("K", keyCode: 40)
+        model.commitPendingEdits?()
+
+        let text = try XCTUnwrap(model.doc.annotations.first)
+        XCTAssertEqual(text.text, "OK")
+        XCTAssertEqual(text.start.x, start.x, accuracy: 0.5, "the text moved on the image")
+        XCTAssertEqual(text.start.y, start.y, accuracy: 0.5, "the text moved on the image")
+    }
+
     // MARK: Helpers
 
     private func makeModel() -> EditorModel {

@@ -1,3 +1,5 @@
+import AppKit
+import CoreText
 import SwiftUI
 
 /// Button that shows the current font and opens a searchable picker with every font on this Mac plus Google Fonts.
@@ -31,8 +33,10 @@ struct FontPickerButton: View {
     }
 }
 
+/// The family as the canvas finds it, so a font downloaded moments ago shows in its own style straight away.
 func previewFont(_ family: String, size: CGFloat) -> Font {
-    family.isEmpty ? .system(size: size, weight: .semibold) : .custom(family, size: size)
+    guard let font = NSFont.family(family, size: size, bold: false) else { return .system(size: size, weight: .semibold) }
+    return Font(font as CTFont)
 }
 
 struct FontPickerView: View {
@@ -199,7 +203,7 @@ struct FontPickerView: View {
             } else {
                 Button {
                     Task {
-                        if await library.download(family) { fontName = family }
+                        if let name = await library.download(family) { fontName = name }
                     }
                 } label: {
                     Image(systemName: "arrow.down.circle")
@@ -214,8 +218,8 @@ struct FontPickerView: View {
         let name = googleName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         Task {
-            if await library.download(name) {
-                fontName = name
+            if let family = await library.download(name) {
+                fontName = family
                 googleName = ""
             }
         }

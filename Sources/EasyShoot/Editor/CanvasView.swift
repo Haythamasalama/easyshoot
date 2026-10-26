@@ -41,17 +41,24 @@ final class CanvasView: NSView, NSTextViewDelegate {
     // Text editing state
     private var textView: NSTextView?
     private var editingID: UUID?
-    private var editLeftX: CGFloat = 0
-    private var editRightX: CGFloat = 0
-    private var editTopY: CGFloat = 0
+    /// Where the text being edited sits, in image pixels, so it stays put when the canvas moves or zooms:
+    /// it grows rightward from `editLeft` (left-to-right) or leftward from `editRight` (right-to-left).
+    private var editLeft: CGFloat = 0
+    private var editRight: CGFloat = 0
+    private var editTop: CGFloat = 0
     private var editAppliedStyle: AnnotationStyle?
     private var editWasRTL = false
+    private var editZoom: CGFloat = 0
 
     override var isFlipped: Bool { true }
 
     /// Height covered by the floating bars at the top; the image is fitted below it.
     var topInset: CGFloat = 62 {
-        didSet { if topInset != oldValue { needsDisplay = true } }
+        didSet {
+            guard topInset != oldValue else { return }
+            needsDisplay = true
+            followTextEditor()
+        }
     }
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -69,7 +76,8 @@ final class CanvasView: NSView, NSTextViewDelegate {
             if self.model.tool != .text && self.model.tool != .select {
                 self.endTextEditing()
             } else if let a = self.model.annotation(id) {
-                if a.style != self.editAppliedStyle { self.applyEditorAttributes(force: true) }
+                // Also follows the image when the background's padding or aspect ratio moves it.
+                self.applyEditorAttributes(force: a.style != self.editAppliedStyle)
             } else {
                 self.cancelTextEditing()
             }
@@ -114,11 +122,11 @@ final class CanvasView: NSView, NSTextViewDelegate {
         imagePoint(fromView: convert(event.locationInWindow, from: nil))
     }
 
+    /// SwiftUI lays the canvas out again after model changes, like the selection a new text makes. Ending
+    /// the edit here closed every new, still empty text right after the click, so typing did nothing.
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
-        if editingID != nil {
-            Task { @MainActor [weak self] in self?.endTextEditing() }
-        }
+        followTextEditor()
     }
 
     // MARK: Drawing
@@ -471,6 +479,14 @@ final class CanvasView: NSView, NSTextViewDelegate {
     // MARK: Keyboard
 
     override func keyDown(with event: NSEvent) {
+        // While a text is open, keys type into it even if the keyboard focus left it: they are not tool letters.
+        if let tv = textView {
+            if window?.firstResponder !== tv {
+                window?.makeFirstResponder(tv)
+                tv.keyDown(with: event)
+            }
+            return
+        }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags.contains(.command) || flags.contains(.control) {
             super.keyDown(with: event)
@@ -543,11 +559,10 @@ final class CanvasView: NSView, NSTextViewDelegate {
         let a = Annotation(kind: .text, start: CGPoint(x: p.x - pad.width, y: p.y - lineHalf - pad.height),
                            end: p, style: model.style)
         model.add(a)
-        let click = viewPoint(fromImage: p)
-        beginTextEditing(a.id, anchorX: click.x, isNew: true)
+        beginTextEditing(a.id, anchorX: p.x, isNew: true)
     }
 
-    /// `anchorX`: for new text, the click point; the text grows rightward (LTR) or leftward (RTL) from it.
+    /// `anchorX`: for new text, the click point (image pixels); the text grows rightward (LTR) or leftward (RTL) from it.
     private func beginTextEditing(_ id: UUID, anchorX: CGFloat? = nil, isNew: Bool = false) {
         guard let a = model.annotation(id) else { return }
         if editingID != nil { endTextEditing() }
@@ -555,19 +570,13 @@ final class CanvasView: NSView, NSTextViewDelegate {
         model.selectedID = id
         editingID = id
 
-        let s = model.doc.scale, z = zoom
+        let s = model.doc.scale
         let pad = Renderer.textPadding(a.style, scale: s)
-        let size = Renderer.textSize(a, scale: s)
-        let topLeft = viewPoint(fromImage: CGPoint(x: a.start.x + pad.width, y: a.start.y + pad.height))
-        editTopY = topLeft.y
-        if let anchorX {
-            editLeftX = anchorX
-            editRightX = anchorX
-        } else {
-            editLeftX = topLeft.x
-            editRightX = topLeft.x + size.width * z
-        }
+        editTop = a.start.y + pad.height
+        editLeft = anchorX ?? a.start.x + pad.width
+        editRight = anchorX ?? editLeft + Renderer.textSize(a, scale: s).width
 
+        let topLeft = viewPoint(fromImage: CGPoint(x: editLeft, y: editTop))
         let tv = NSTextView(frame: CGRect(x: topLeft.x, y: topLeft.y, width: 20, height: 20))
         tv.isRichText = false
         tv.importsGraphics = false
@@ -601,7 +610,9 @@ final class CanvasView: NSView, NSTextViewDelegate {
     private func applyEditorAttributes(force: Bool) {
         guard let tv = textView, let id = editingID, let a = model.annotation(id) else { return }
         let rtl = a.style.textDirection.isRTL(for: tv.string)
-        if force || rtl != editWasRTL {
+        let z = zoom
+        // The field's font follows the zoom, which changes with the window size.
+        if force || rtl != editWasRTL || z != editZoom {
             let attrs = editorAttributes(for: a, text: tv.string)
             tv.typingAttributes = attrs
             if let storage = tv.textStorage, storage.length > 0 {
@@ -620,6 +631,7 @@ final class CanvasView: NSView, NSTextViewDelegate {
             }
             editAppliedStyle = a.style
             editWasRTL = rtl
+            editZoom = z
         }
         resizeTextView()
     }
@@ -633,8 +645,15 @@ final class CanvasView: NSView, NSTextViewDelegate {
         let fontSize = a.style.fontSize * model.doc.scale * zoom
         let width = size.width + max(4, fontSize * 0.3)
         let rtl = a.style.textDirection.isRTL(for: tv.string)
-        let x = rtl ? editRightX - width : editLeftX
-        tv.frame = CGRect(x: x, y: editTopY, width: width, height: max(size.height, fontSize * 1.2))
+        let left = viewPoint(fromImage: CGPoint(x: editLeft, y: editTop))
+        let x = rtl ? viewPoint(fromImage: CGPoint(x: editRight, y: editTop)).x - width : left.x
+        tv.frame = CGRect(x: x, y: left.y, width: width, height: max(size.height, fontSize * 1.2))
+    }
+
+    /// Keeps the open text over its spot when the image moves or zooms (window resize, a bar appearing).
+    private func followTextEditor() {
+        guard editingID != nil else { return }
+        applyEditorAttributes(force: false)
     }
 
     func endTextEditing() {
@@ -651,15 +670,13 @@ final class CanvasView: NSView, NSTextViewDelegate {
             model.discard(id)
         } else if var a = model.annotation(id) {
             a.text = text
-            let s = model.doc.scale, z = zoom
+            let s = model.doc.scale
             let size = Renderer.textSize(a, scale: s)
             let pad = Renderer.textPadding(a.style, scale: s)
-            let rtl = a.style.textDirection.isRTL(for: text)
-            let leftX = rtl ? editRightX - size.width * z : editLeftX
-            let topLeft = imagePoint(fromView: CGPoint(x: leftX, y: editTopY))
+            let left = a.style.textDirection.isRTL(for: text) ? editRight - size.width : editLeft
             model.update(id) {
                 $0.text = text
-                $0.start = CGPoint(x: topLeft.x - pad.width, y: topLeft.y - pad.height)
+                $0.start = CGPoint(x: left - pad.width, y: editTop - pad.height)
             }
         }
         needsDisplay = true
